@@ -1,5 +1,5 @@
-# Feature Requests Log
+# Feature Requests
 
-*No entries yet.*
+Capabilities requested by user that don't currently exist.
 
 ---
