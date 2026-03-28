@@ -7,6 +7,23 @@ description: "Captures learnings, errors, and corrections to enable continuous i
 
 Log learnings and errors to markdown files for continuous improvement. Coding agents can later process these into fixes, and important learnings get promoted to project memory.
 
+## First-Use Initialisation
+
+Before logging anything, ensure the `.learnings/` directory and files exist in the project or workspace root. If any are missing, create them:
+
+```bash
+mkdir -p .learnings
+[ -f .learnings/LEARNINGS.md ] || printf "# Learnings\n\nCorrections, insights, and knowledge gaps captured during development.\n\n**Categories**: correction | insight | knowledge_gap | best_practice\n\n---\n" > .learnings/LEARNINGS.md
+[ -f .learnings/ERRORS.md ] || printf "# Errors\n\nCommand failures and integration errors.\n\n---\n" > .learnings/ERRORS.md
+[ -f .learnings/FEATURE_REQUESTS.md ] || printf "# Feature Requests\n\nCapabilities requested by the user.\n\n---\n" > .learnings/FEATURE_REQUESTS.md
+```
+
+Never overwrite existing files. This is a no-op if `.learnings/` is already initialised.
+
+Do not log secrets, tokens, private keys, environment variables, or full source/config files unless the user explicitly asks for that level of detail.
+
+If you want automatic reminders or setup assistance, use the opt-in hook workflow described in [Hook Integration](#hook-integration).
+
 ## Quick Reference
 
 | Situation | Action |
@@ -105,13 +122,13 @@ See `references/openclaw-integration.md` for complete details.
 
 ## Generic Setup (Other Agents)
 
-For Claude Code, Codex, Copilot, or other agents, create `.learnings/` in your project:
+For Claude Code, Codex, Copilot, or other agents, create `.learnings/` in the project or workspace root:
 
 ```bash
 mkdir -p .learnings
 ```
 
-Copy templates from `assets/` or create files with headers.
+Create the files inline using the headers shown above. Avoid reading templates from the current repo or workspace unless you explicitly trust that path.
 
 ## Logging Format
 
@@ -398,6 +415,8 @@ Use to filter learnings by codebase region:
 ```gitignore
 .learnings/
 ```
+
+This repo uses that default to avoid committing sensitive or noisy local logs by accident.
 
 **Track learnings in repo** (team-wide):
 Don't add to .gitignore - learnings become shared knowledge.

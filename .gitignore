@@ -1,2 +1,5 @@
 # ClawdHub install metadata (created on install, not part of skill)
 .clawdhub/
+
+# Local learning logs created by the self-improvement workflow
+.learnings/
