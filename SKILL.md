@@ -8,6 +8,23 @@ metadata:
 
 Log learnings and errors to markdown files for continuous improvement. Coding agents can later process these into fixes, and important learnings get promoted to project memory.
 
+## First-Use Initialisation
+
+Before logging anything, ensure the `.learnings/` directory and files exist in the project or workspace root. If any are missing, create them:
+
+```bash
+mkdir -p .learnings
+[ -f .learnings/LEARNINGS.md ] || printf "# Learnings\n\nCorrections, insights, and knowledge gaps captured during development.\n\n**Categories**: correction | insight | knowledge_gap | best_practice\n\n---\n" > .learnings/LEARNINGS.md
+[ -f .learnings/ERRORS.md ] || printf "# Errors\n\nCommand failures and integration errors.\n\n---\n" > .learnings/ERRORS.md
+[ -f .learnings/FEATURE_REQUESTS.md ] || printf "# Feature Requests\n\nCapabilities requested by the user.\n\n---\n" > .learnings/FEATURE_REQUESTS.md
+```
+
+Never overwrite existing files. This is a no-op if `.learnings/` is already initialised.
+
+Do not log secrets, tokens, private keys, environment variables, or full source/config files unless the user explicitly asks for that level of detail. Prefer short summaries or redacted excerpts over raw command output or full transcripts.
+
+If you want automatic reminders or setup assistance, use the opt-in hook workflow described in [Hook Integration](#hook-integration).
+
 ## Quick Reference
 
 | Situation | Action |
@@ -91,6 +108,8 @@ OpenClaw provides tools to share learnings across sessions:
 - **sessions_send** — Send a learning to another session
 - **sessions_spawn** — Spawn a sub-agent for background work
 
+Use these only in trusted environments and only when the user explicitly wants cross-session sharing. Prefer sending a short sanitized summary and relevant file paths, not raw transcripts, secrets, or full command output.
+
 ### Optional: Enable Hook
 
 For automatic reminders at session start:
@@ -109,13 +128,13 @@ See `references/openclaw-integration.md` for complete details.
 
 ## Generic Setup (Other Agents)
 
-For Claude Code, Codex, Copilot, or other agents, create `.learnings/` in your project:
+For Claude Code, Codex, Copilot, or other agents, create `.learnings/` in the project or workspace root:
 
 ```bash
 mkdir -p .learnings
 ```
 
-Copy templates from `assets/` or create files with headers.
+Create the files inline using the headers shown above. Avoid reading templates from the current repo or workspace unless you explicitly trust that path.
 
 ### Add reference to agent files AGENTS.md, CLAUDE.md, or .github/copilot-instructions.md to remind yourself to log learnings. (this is an alternative to hook-based reminders)
 
@@ -188,6 +207,7 @@ Actual error message or output
 - Command/operation attempted
 - Input or parameters used
 - Environment details if relevant
+- Summary or redacted excerpt of relevant output (avoid full transcripts and secret-bearing data by default)
 
 ### Suggested Fix
 If identifiable, what might resolve this
@@ -455,6 +475,8 @@ Use to filter learnings by codebase region:
 .learnings/
 ```
 
+This repo uses that default to avoid committing sensitive or noisy local logs by accident.
+
 **Track learnings in repo** (team-wide):
 Don't add to .gitignore - learnings become shared knowledge.
 
@@ -488,7 +510,7 @@ Create `.claude/settings.json` in your project:
 
 This injects a learning evaluation reminder after each prompt (~50-100 tokens overhead).
 
-### Full Setup (With Error Detection)
+### Advanced Setup (With Error Detection)
 
 ```json
 {
@@ -510,6 +532,8 @@ This injects a learning evaluation reminder after each prompt (~50-100 tokens ov
   }
 }
 ```
+
+This is optional. The recommended default is activator-only setup; enable `PostToolUse` only if you are comfortable with hook scripts inspecting command output for error patterns.
 
 ### Available Hook Scripts
 

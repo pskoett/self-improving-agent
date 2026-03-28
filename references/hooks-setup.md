@@ -205,7 +205,9 @@ If you need to reduce overhead further, you can edit `activator.sh` to output le
 - Hook scripts run with the same permissions as Claude Code
 - Scripts only output text; they don't modify files or run commands
 - Error detector reads `CLAUDE_TOOL_OUTPUT` environment variable
+- Treat `CLAUDE_TOOL_OUTPUT` as potentially sensitive; do not log or forward it verbatim unless the user explicitly wants that detail
 - All scripts are opt-in (you must configure them explicitly)
+- Recommended default: enable `UserPromptSubmit` only, and add `PostToolUse` only when you want error-pattern reminders from command output
 
 ## Disabling Hooks
 

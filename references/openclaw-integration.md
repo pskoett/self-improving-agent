@@ -158,6 +158,8 @@ Is the learning project-specific?
 
 OpenClaw provides tools for cross-session communication:
 
+Use these only when cross-session sharing is explicitly needed and the environment is trusted. Prefer short sanitized summaries over raw transcripts, command output, or secret-bearing content.
+
 ### sessions_list
 
 View active and recent sessions:
@@ -172,12 +174,16 @@ Read transcript from another session:
 sessions_history(sessionKey="session-id", limit=50)
 ```
 
+Only read another session's transcript when the user explicitly wants shared context or continuation across sessions.
+
 ### sessions_send
 
 Send message to another session:
 ```
 sessions_send(sessionKey="session-id", message="Learning: API requires X-Custom-Header")
 ```
+
+Prefer sending a concise learning summary plus relevant paths rather than forwarding raw transcript content.
 
 ### sessions_spawn
 
