@@ -5,6 +5,8 @@
  * Fires on agent:bootstrap event before workspace files are injected.
  */
 
+const REMINDER_PATH = 'SELF_IMPROVEMENT_REMINDER.md';
+
 const REMINDER_CONTENT = `
 ## Self-Improvement Reminder
 
@@ -41,11 +43,26 @@ const handler = async (event) => {
     return;
   }
 
+  // Skip sub-agent sessions to avoid bootstrap issues
+  // Sub-agents have sessionKey patterns like "agent:main:subagent:..."
+  const sessionKey = event.sessionKey || '';
+  if (sessionKey.includes(':subagent:')) {
+    return;
+  }
+
   // Inject the reminder as a virtual bootstrap file
   // Check that bootstrapFiles is an array before pushing
   if (Array.isArray(event.context.bootstrapFiles)) {
+    const alreadyInjected = event.context.bootstrapFiles.some(
+      (file) => file && typeof file === 'object' && file.path === REMINDER_PATH,
+    );
+
+    if (alreadyInjected) {
+      return;
+    }
+
     event.context.bootstrapFiles.push({
-      path: 'SELF_IMPROVEMENT_REMINDER.md',
+      path: REMINDER_PATH,
       content: REMINDER_CONTENT,
       virtual: true,
     });
