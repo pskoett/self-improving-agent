@@ -172,15 +172,15 @@ Or update Dockerfile: `FROM --platform=linux/amd64 python:3.11-slim`
 **Area**: backend
 
 ### Summary
-Third-party payment API timeout during checkout
+Third-party API timeout during request processing
 
 ### Error
 ```
-TimeoutError: Request to payments.example.com timed out after 30000ms
+TimeoutError: Request to api.example.com timed out after 30000ms
 ```
 
 ### Context
-- Command: POST /api/checkout
+- Command: POST /api/process
 - Timeout set to 30s
 - Occurs during peak hours (lunch, evening)
 
@@ -189,7 +189,7 @@ Implement retry with exponential backoff. Consider circuit breaker pattern.
 
 ### Metadata
 - Reproducible: yes (during peak hours)
-- Related Files: src/services/payment.ts
+- Related Files: src/services/api-client.ts
 - See Also: ERR-20250115-X1Y, ERR-20250118-Z3W
 
 ---
