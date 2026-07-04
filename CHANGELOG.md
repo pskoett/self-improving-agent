@@ -17,6 +17,12 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
+### Added
+
+- GitHub Actions CI (`.github/workflows/ci.yml`): runs the hook test suite,
+  type-checks `handler.ts` (strict mode, against a CI-only type stub), and
+  syntax-checks `extract-skill.sh` on every push to master and every PR.
+
 ## [0.4.0] - 2026-07-04
 
 ### Removed
