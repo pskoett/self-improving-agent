@@ -17,6 +17,35 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-04
+
+### Removed
+
+- **This distribution is now OpenClaw-only.** Removed the Claude Code /
+  Codex / Copilot integrations: `scripts/activator.sh`,
+  `scripts/error-detector.sh`, `references/hooks-setup.md`, and the
+  multi-agent setup/support sections in `SKILL.md` and
+  `references/uninstall.md`. For other agents, use the original multi-agent
+  version: https://github.com/pskoett/pskoett-ai-skills.
+
+### Changed
+
+- Promotion targets are now the OpenClaw workspace files (`SOUL.md`,
+  `TOOLS.md`, `AGENTS.md`), with the project's own agent file as the target
+  for project-specific patterns.
+- Hook docs and code comments describe the session-end sweep on its own
+  terms (OpenClaw has no per-tool-call event) instead of contrasting with
+  other platforms.
+
+### Upgrade notes (0.3.0 → 0.4.0)
+
+1. If you configured the Claude Code/Codex hooks from earlier versions,
+   remove the stale `.claude/settings.json` / `.codex/settings.json` entries
+   pointing at `activator.sh` / `error-detector.sh`, and switch to the
+   original multi-agent skill for those platforms.
+2. Nothing changes for OpenClaw installs beyond the usual re-copy of the
+   hook directory; `.learnings/` data and entry formats are unaffected.
+
 ## [0.3.0] - 2026-07-04
 
 ### Added
@@ -42,18 +71,6 @@ Read this before upgrading. General upgrade rules:
   duplicated.
 - Tightened `SKILL.md` (hook sections, taxonomy, duplicated setup blocks) to
   keep the always-loaded skill prompt compact.
-- Promotion targets are now the OpenClaw workspace files (`SOUL.md`,
-  `TOOLS.md`, `AGENTS.md`), with the project's own agent file as the target
-  for project-specific patterns.
-
-### Removed
-
-- **This distribution is now OpenClaw-only.** Removed the Claude Code /
-  Codex / Copilot integrations: `scripts/activator.sh`,
-  `scripts/error-detector.sh`, `references/hooks-setup.md`, and the
-  multi-agent setup/support sections in `SKILL.md` and
-  `references/uninstall.md`. For the multi-agent version, see the original
-  https://github.com/pskoett/pskoett-ai-skills.
 
 ### Fixed
 
