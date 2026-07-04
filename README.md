@@ -2,6 +2,11 @@
 
 Self-improvement skill for OpenClaw. It captures learnings, errors, and feature requests to support continuous improvement across sessions.
 
+**This version is OpenClaw-only.** To use the skill with other agents
+(Claude Code, Codex, GitHub Copilot, …), use the original multi-agent
+version instead:
+https://github.com/pskoett/pskoett-ai-skills/tree/main/skills/self-improvement
+
 ## Attribution
 
 Remade for OpenClaw from the original repo:
@@ -24,6 +29,6 @@ cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement
 
 ## Uninstalling
 
-See `references/uninstall.md` for disable vs. full-removal steps per platform
-(OpenClaw, Claude Code/Codex, Copilot). Review `.learnings/` before deleting —
-it contains your captured learnings, not skill code.
+See `references/uninstall.md` for disable vs. full-removal steps. Review
+`.learnings/` before deleting — it contains your captured learnings, not
+skill code.

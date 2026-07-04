@@ -114,6 +114,26 @@ test('session-end sweep appends detected errors to ERRORS.md', async () => {
   assert.match(content, /command not found/);
   assert.match(content, /Source: openclaw-error-sweep/);
   assert.match(content, /\*\*Status\*\*: pending/);
+  assert.match(content, /- Pattern-Key: deps\.npm-error/);
+  assert.match(content, /- Pattern-Key: shell\.command-not-found/);
+});
+
+test('sweep stamps the most specific Pattern-Key and dedupes keys', async () => {
+  await fs.mkdir(path.join(workspaceDir, '.learnings'), { recursive: true });
+  const sessionFile = await writeTranscript([
+    // 'ModuleNotFoundError' must win over the generic 'Error:'/'Traceback' buckets
+    toolResultLine("ModuleNotFoundError: No module named 'requests'"),
+    toolResultLine('TypeError: cannot read properties of undefined (first)'),
+    toolResultLine('TypeError: cannot read properties of undefined (second)'),
+  ]);
+
+  await handler(makeCommandEvent('new', sessionFile));
+
+  const content = await fs.readFile(errorsFile(), 'utf-8');
+  assert.match(content, /- Pattern-Key: deps\.module-not-found/);
+  const typeErrorKeys = content.split('- Pattern-Key: runtime.type-error').length - 1;
+  assert.equal(typeErrorKeys, 1);
+  assert.doesNotMatch(content, /- Pattern-Key: runtime\.error/);
 });
 
 test('sweep does nothing when .learnings/ does not exist (opt-in gate)', async () => {

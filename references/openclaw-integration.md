@@ -61,7 +61,7 @@ The hook does two things:
 - **`command:new` / `command:reset`** — sweeps the transcript of the session
   that just ended for error patterns and appends pending entries to
   `<workspace>/.learnings/ERRORS.md` (only if `.learnings/` exists — see
-  [Error Detection on OpenClaw](#error-detection-on-openclaw))
+  [Error Detection](#error-detection))
 
 ### 3. Create Learning Files
 
@@ -214,29 +214,28 @@ sessions_spawn(task="Research X and report back", label="research")
 | `message:received` / `message:sent` | Around message delivery |
 | `session:compact:before` / `:after` | Around session compaction |
 
-**Important:** OpenClaw has **no `PostToolUse` equivalent** — there is no
-event that fires after each tool call. Real-time error detection like Claude
-Code's `PostToolUse` hook is not possible on OpenClaw.
+**Important:** OpenClaw has **no per-tool-call event** — nothing fires after
+each individual tool call, so real-time per-command error detection is not
+possible. Error detection is done at session end instead (see below).
 
-## Error Detection on OpenClaw
+## Error Detection
 
-`scripts/error-detector.sh` is **Claude Code only**: it is a `PostToolUse`
-hook, and OpenClaw never fires such an event, so on OpenClaw it never runs.
-
-Instead, the bundled hook (`hooks/openclaw/`) implements a **session-end
-error sweep**:
+The skill's hook (`hooks/openclaw/`) implements a **session-end error
+sweep**:
 
 1. When `/new` or `/reset` ends a session, the hook resolves the ended
    session's transcript from `context.previousSessionEntry` (falling back to
-   `<workspace>/sessions/<sessionId>.jsonl`) — the same source the bundled
-   `session-memory` hook uses.
-2. The transcript is scanned for the same error patterns as
-   `error-detector.sh` (`Error:`, `command not found`, `Traceback`,
-   `npm ERR!`, `Permission denied`, …).
+   `<workspace>/sessions/<sessionId>.jsonl`) — the same source OpenClaw's
+   bundled `session-memory` hook uses.
+2. The transcript is scanned against a fixed error-pattern list (`Error:`,
+   `command not found`, `Traceback`, `npm ERR!`, `Permission denied`, …).
 3. Matches are appended to `<workspace>/.learnings/ERRORS.md` as a `pending`
    entry with `Source: openclaw-error-sweep`, containing at most 5 short
    excerpts (truncated to 200 chars, common secret shapes redacted,
-   duplicates skipped).
+   duplicates skipped). Each entry is stamped with deterministic
+   `Pattern-Key` values derived from the matched pattern (for example
+   `ModuleNotFoundError` → `deps.module-not-found`), so recurrences can be
+   counted by key during triage — see the Pattern-Key Taxonomy in `SKILL.md`.
 4. At the next `agent:bootstrap`, the injected reminder includes a
    **pending triage** note so the agent reviews the auto-detected entries —
    confirming real errors, filling in fixes, or deleting noise.
@@ -253,22 +252,13 @@ mkdir -p ~/.openclaw/workspace/.learnings
 rm -r ~/.openclaw/workspace/.learnings
 ```
 
-### Platform Support Matrix
-
-| Capability | Claude Code | OpenClaw |
-|------------|-------------|----------|
-| Reminder injection | ✅ `UserPromptSubmit` (`activator.sh`) | ✅ `agent:bootstrap` (hook) |
-| Real-time per-command error detection | ✅ `PostToolUse` (`error-detector.sh`) | ❌ No `PostToolUse` equivalent |
-| Session-end error sweep | — (not needed) | ✅ `command:new` / `command:reset` (hook) |
-| Detection latency | Immediately after the failing command | At session end (`/new` / `/reset`) |
-| Requires agent cooperation to log | Yes (hook only reminds) | No (sweep writes the entry; agent triages later) |
-
 ### Sweep Limitations
 
 - Sessions that are never ended with `/new` or `/reset` are not swept.
-- Pattern matching is heuristic (same patterns as `error-detector.sh`); it
-  can flag false positives such as prose containing the word "failed" —
-  that's what the triage step is for.
+- Detection happens at session end, not immediately after the failing
+  command — there is no per-tool-call event to hook.
+- Pattern matching is heuristic; it can flag false positives such as prose
+  containing the word "failed" — that's what the triage step is for.
 - Excerpts are redacted with best-effort rules; treat `.learnings/` as
   potentially sensitive and keep it out of version control by default.
 

@@ -9,9 +9,9 @@ metadata: {"openclaw":{"emoji":"🧠","events":["agent:bootstrap","command:new",
 Injects a reminder to evaluate learnings during agent bootstrap, and detects
 errors from ended sessions.
 
-OpenClaw has no `PostToolUse` equivalent, so the Claude Code error detector
-(`scripts/error-detector.sh`) can never fire on OpenClaw. This hook provides
-the OpenClaw-native alternative: a session-end error sweep.
+OpenClaw has no per-tool-call hook event, so errors cannot be detected in
+real time after each command. This hook detects them with a session-end
+error sweep instead.
 
 ## What It Does
 
@@ -26,10 +26,14 @@ the OpenClaw-native alternative: a session-end error sweep.
 - Locates the transcript of the session that just ended
   (`context.previousSessionEntry.sessionFile`, falling back to
   `<workspace>/sessions/<sessionId>.jsonl`)
-- Scans it for the same error patterns as `scripts/error-detector.sh`
+- Scans it against a fixed error-pattern list
   (`Error:`, `command not found`, `Traceback`, `npm ERR!`, …)
 - Appends a `pending` entry to `<workspace>/.learnings/ERRORS.md` with short,
   truncated, redacted excerpts (max 5 per sweep) for the next session to triage
+- Stamps each entry with deterministic `Pattern-Key` values derived from the
+  matched pattern (e.g. `deps.module-not-found`, `shell.command-not-found`),
+  so auto-detected errors can be deduplicated and recurrence-counted by key
+  (see the Pattern-Key Taxonomy in `SKILL.md`)
 
 ## Opt-In and Safety
 
