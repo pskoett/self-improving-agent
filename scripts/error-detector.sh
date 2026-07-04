@@ -9,9 +9,14 @@
 
 set -e
 
-# Check if tool output indicates an error
-# CLAUDE_TOOL_OUTPUT contains the result of the tool execution
+# Check if tool output indicates an error.
+# Current Claude Code delivers PostToolUse input as JSON on stdin
+# (tool_response etc.); older versions exposed CLAUDE_TOOL_OUTPUT instead.
+# Support both — pattern matching against the raw JSON works fine.
 OUTPUT="${CLAUDE_TOOL_OUTPUT:-}"
+if [ -z "$OUTPUT" ] && [ ! -t 0 ]; then
+    OUTPUT="$(cat)"
+fi
 
 # Patterns indicating errors (case-insensitive matching)
 ERROR_PATTERNS=(

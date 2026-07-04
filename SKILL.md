@@ -116,27 +116,17 @@ Use these only in trusted environments and only when the user explicitly wants c
 For automatic reminders at session start and error detection at session end:
 
 ```bash
-# Copy hook to OpenClaw hooks directory
 cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement
-
-# Enable it
 openclaw hooks enable self-improvement
 ```
 
-The hook fires on:
-
-- `agent:bootstrap` — injects the self-improvement reminder (plus a
-  pending-triage note when auto-detected errors await review)
-- `command:new` / `command:reset` — sweeps the ended session's transcript for
-  error patterns and appends pending entries to
-  `<workspace>/.learnings/ERRORS.md` (only when `.learnings/` exists)
-
-**Note:** OpenClaw has no `PostToolUse` event, so `scripts/error-detector.sh`
-(real-time, per-command detection) is Claude Code only. On OpenClaw, error
-detection happens at session end via the sweep above.
-
-See `references/openclaw-integration.md` for complete details, the platform
-support matrix, and sweep limitations.
+Fires on `agent:bootstrap` (injects the reminder, plus a pending-triage note
+when auto-detected errors await review) and on `command:new`/`command:reset`
+(sweeps the ended session's transcript for error patterns into
+`<workspace>/.learnings/ERRORS.md`; opt-in — runs only when `.learnings/`
+exists). OpenClaw has no `PostToolUse` event, so `scripts/error-detector.sh`
+is Claude Code only. See `references/openclaw-integration.md` for the
+platform support matrix and sweep limitations.
 
 ---
 
@@ -353,16 +343,13 @@ When a learning is broadly applicable (not a one-off fix), promote it to permane
 ## Pattern-Key Taxonomy
 
 `Pattern-Key` is the stable dedup and recurrence key for entries in all three
-log files. Keyword grep misses semantically identical but differently-worded
-entries ("ECONNREFUSED on api.foo.com" vs "connection refused talking to foo
-API"); a shared key does not. Keys are what make `Recurrence-Count` — and the
-promotion rule that depends on it — reliable.
+log files: keyword grep misses semantically identical but differently-worded
+entries, a shared key does not — and reliable keys are what make
+`Recurrence-Count` and the promotion rule work.
 
-**Format**: `area.symptom` — exactly two levels, lowercase, hyphenated symptom
-(e.g. `deps.module-not-found`). Keep the symptom generic enough to recur: no
-file names, package versions, or hostnames in keys.
-
-### Namespaces
+**Format**: `area.symptom` — exactly two levels, lowercase, hyphenated
+(e.g. `deps.module-not-found`). Keep symptoms generic enough to recur: no
+file names, versions, or hostnames in keys.
 
 | Area | Scope | Example Keys |
 |------|-------|--------------|
@@ -378,18 +365,15 @@ file names, package versions, or hostnames in keys.
 | `vcs` | Git and other version control | `vcs.fatal-error`, `vcs.merge-conflict` |
 | `simplify` / `harden` | Code-quality patterns from the simplify-and-harden feed | `simplify.dead_code`, `harden.input_validation` |
 
-### Rules
+**Rules:**
 
-1. **Reuse before minting**: `grep -rhn "Pattern-Key:" .learnings/ | sort -u`
-   and pick an existing key if it fits. A near-match beats a new key.
-2. **One key per manual entry**: if two apply, pick the dominant one and note
-   the other in Tags or See Also. (Auto-swept OpenClaw entries may carry one
-   `Pattern-Key:` line per detected pattern — reduce to one when triaging.)
-3. **Mint new namespaces sparingly**: prefer fitting an existing area; a new
-   area is justified only when several entries would share it.
-4. **Generic sweep keys are provisional**: `runtime.error` / `runtime.failure`
-   from the OpenClaw sweep mean "unclassified" — replace with a more specific
-   key during triage when the cause is understood.
+1. **Reuse before minting**: `grep -rh "Pattern-Key:" .learnings/ | sort -u` —
+   a near-match beats a new key.
+2. **One key per manual entry**; auto-swept OpenClaw entries may carry
+   several — reduce to one when triaging.
+3. **Mint new areas sparingly** — only when several entries would share one.
+4. **Generic sweep keys** (`runtime.error`, `runtime.failure`) mean
+   "unclassified" — replace with a specific key during triage.
 
 ## Recurring Pattern Detection
 
@@ -578,28 +562,11 @@ This injects a learning evaluation reminder after each prompt (~50-100 tokens ov
 
 ### Advanced Setup (With Error Detection)
 
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "./skills/self-improvement/scripts/activator.sh"
-      }]
-    }],
-    "PostToolUse": [{
-      "matcher": "Bash",
-      "hooks": [{
-        "type": "command",
-        "command": "./skills/self-improvement/scripts/error-detector.sh"
-      }]
-    }]
-  }
-}
-```
-
-This is optional. The recommended default is activator-only setup; enable `PostToolUse` only if you are comfortable with hook scripts inspecting command output for error patterns.
+Optionally add a `PostToolUse` entry (matcher `"Bash"`) running
+`scripts/error-detector.sh` alongside the activator — full JSON in
+`references/hooks-setup.md`. The recommended default is activator-only;
+enable `PostToolUse` only if you are comfortable with hook scripts inspecting
+command output for error patterns.
 
 ### Available Hook Scripts
 
@@ -612,14 +579,11 @@ See `references/hooks-setup.md` for detailed configuration and troubleshooting.
 
 ## Upgrading & Uninstalling
 
-- **Before upgrading**, read `CHANGELOG.md` for breaking changes and per-version
-  upgrade notes. OpenClaw hook changes require re-copying the hook
-  (`cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement`) and restarting
-  the gateway. `.learnings/` files are never migrated or overwritten.
-- **To disable or remove** the skill, follow `references/uninstall.md`.
-  Treat `.learnings/` as user data: review or archive it before deleting, and
-  note that content promoted to `CLAUDE.md`/`AGENTS.md`/`SOUL.md`/`TOOLS.md`
-  stays until removed manually.
+Read `CHANGELOG.md` before upgrading — it carries per-version notes, and
+OpenClaw hook changes require re-copying the hook and restarting the gateway.
+To disable or remove the skill, follow `references/uninstall.md`:
+`.learnings/` is user data (review before deleting), and content promoted to
+`CLAUDE.md`/`AGENTS.md`/`SOUL.md`/`TOOLS.md` stays until removed manually.
 
 ## Automatic Skill Extraction
 
