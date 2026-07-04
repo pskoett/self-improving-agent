@@ -112,7 +112,7 @@ Use these only in trusted environments and only when the user explicitly wants c
 
 ### Optional: Enable Hook
 
-For automatic reminders at session start:
+For automatic reminders at session start and error detection at session end:
 
 ```bash
 # Copy hook to OpenClaw hooks directory
@@ -122,7 +122,20 @@ cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement
 openclaw hooks enable self-improvement
 ```
 
-See `references/openclaw-integration.md` for complete details.
+The hook fires on:
+
+- `agent:bootstrap` — injects the self-improvement reminder (plus a
+  pending-triage note when auto-detected errors await review)
+- `command:new` / `command:reset` — sweeps the ended session's transcript for
+  error patterns and appends pending entries to
+  `<workspace>/.learnings/ERRORS.md` (only when `.learnings/` exists)
+
+**Note:** OpenClaw has no `PostToolUse` event, so `scripts/error-detector.sh`
+(real-time, per-command detection) is Claude Code only. On OpenClaw, error
+detection happens at session end via the sweep above.
+
+See `references/openclaw-integration.md` for complete details, the platform
+support matrix, and sweep limitations.
 
 ---
 
@@ -613,11 +626,17 @@ Before extraction, verify:
 
 This skill works across different AI coding agents with agent-specific activation.
 
+### OpenClaw
+
+**Activation**: Hook (agent:bootstrap, command:new, command:reset)
+**Setup**: Copy `hooks/openclaw/` to `~/.openclaw/hooks/self-improvement` and enable
+**Detection**: Session-end transcript sweep writes pending entries to `.learnings/ERRORS.md` (no PostToolUse equivalent exists, so there is no real-time per-command detection)
+
 ### Claude Code
 
 **Activation**: Hooks (UserPromptSubmit, PostToolUse)
 **Setup**: `.claude/settings.json` with hook configuration
-**Detection**: Automatic via hook scripts
+**Detection**: Automatic via hook scripts (real-time via PostToolUse)
 
 ### Codex CLI
 

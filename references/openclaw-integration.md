@@ -54,6 +54,15 @@ Enable the hook:
 openclaw hooks enable self-improvement
 ```
 
+The hook does two things:
+
+- **`agent:bootstrap`** — injects the self-improvement reminder into session
+  context (and flags auto-detected errors awaiting triage)
+- **`command:new` / `command:reset`** — sweeps the transcript of the session
+  that just ended for error patterns and appends pending entries to
+  `<workspace>/.learnings/ERRORS.md` (only if `.learnings/` exists — see
+  [Error Detection on OpenClaw](#error-detection-on-openclaw))
+
 ### 3. Create Learning Files
 
 Create the `.learnings/` directory in your workspace:
@@ -201,6 +210,67 @@ sessions_spawn(task="Research X and report back", label="research")
 | `command:reset` | When `/reset` command issued |
 | `command:stop` | When `/stop` command issued |
 | `gateway:startup` | When gateway starts |
+| `gateway:shutdown` | When gateway shuts down |
+| `message:received` / `message:sent` | Around message delivery |
+| `session:compact:before` / `:after` | Around session compaction |
+
+**Important:** OpenClaw has **no `PostToolUse` equivalent** — there is no
+event that fires after each tool call. Real-time error detection like Claude
+Code's `PostToolUse` hook is not possible on OpenClaw.
+
+## Error Detection on OpenClaw
+
+`scripts/error-detector.sh` is **Claude Code only**: it is a `PostToolUse`
+hook, and OpenClaw never fires such an event, so on OpenClaw it never runs.
+
+Instead, the bundled hook (`hooks/openclaw/`) implements a **session-end
+error sweep**:
+
+1. When `/new` or `/reset` ends a session, the hook resolves the ended
+   session's transcript from `context.previousSessionEntry` (falling back to
+   `<workspace>/sessions/<sessionId>.jsonl`) — the same source the bundled
+   `session-memory` hook uses.
+2. The transcript is scanned for the same error patterns as
+   `error-detector.sh` (`Error:`, `command not found`, `Traceback`,
+   `npm ERR!`, `Permission denied`, …).
+3. Matches are appended to `<workspace>/.learnings/ERRORS.md` as a `pending`
+   entry with `Source: openclaw-error-sweep`, containing at most 5 short
+   excerpts (truncated to 200 chars, common secret shapes redacted,
+   duplicates skipped).
+4. At the next `agent:bootstrap`, the injected reminder includes a
+   **pending triage** note so the agent reviews the auto-detected entries —
+   confirming real errors, filling in fixes, or deleting noise.
+
+### Enabling / Disabling the Sweep
+
+The sweep is opt-in and gated on the `.learnings/` directory:
+
+```bash
+# Enable
+mkdir -p ~/.openclaw/workspace/.learnings
+
+# Disable (reminder injection keeps working)
+rm -r ~/.openclaw/workspace/.learnings
+```
+
+### Platform Support Matrix
+
+| Capability | Claude Code | OpenClaw |
+|------------|-------------|----------|
+| Reminder injection | ✅ `UserPromptSubmit` (`activator.sh`) | ✅ `agent:bootstrap` (hook) |
+| Real-time per-command error detection | ✅ `PostToolUse` (`error-detector.sh`) | ❌ No `PostToolUse` equivalent |
+| Session-end error sweep | — (not needed) | ✅ `command:new` / `command:reset` (hook) |
+| Detection latency | Immediately after the failing command | At session end (`/new` / `/reset`) |
+| Requires agent cooperation to log | Yes (hook only reminds) | No (sweep writes the entry; agent triages later) |
+
+### Sweep Limitations
+
+- Sessions that are never ended with `/new` or `/reset` are not swept.
+- Pattern matching is heuristic (same patterns as `error-detector.sh`); it
+  can flag false positives such as prose containing the word "failed" —
+  that's what the triage step is for.
+- Excerpts are redacted with best-effort rules; treat `.learnings/` as
+  potentially sensitive and keep it out of version control by default.
 
 ## Detection Triggers
 
@@ -246,6 +316,16 @@ openclaw status
 1. Verify `.learnings/` directory exists
 2. Check file permissions
 3. Ensure workspace path is configured correctly
+
+### Error sweep not writing entries
+
+1. Verify `<workspace>/.learnings/` exists (the sweep is opt-in and skips
+   silently without it)
+2. End the session with `/new` or `/reset` — the sweep only runs on those
+   commands
+3. Confirm a transcript exists in `<workspace>/sessions/`
+4. Run the gateway with `SELF_IMPROVEMENT_HOOK_DEBUG=1` to surface hook errors
+5. Remember excerpts already present in `ERRORS.md` are skipped (dedupe)
 
 ### Skill not loading
 

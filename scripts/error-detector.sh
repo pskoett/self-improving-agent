@@ -2,6 +2,10 @@
 # Self-Improvement Error Detector Hook
 # Triggers on PostToolUse for Bash to detect command failures
 # Reads CLAUDE_TOOL_OUTPUT environment variable
+#
+# Claude Code only: OpenClaw has no PostToolUse event, so this script never
+# fires there. On OpenClaw, use the session-end error sweep in hooks/openclaw/
+# (see references/openclaw-integration.md).
 
 set -e
 
