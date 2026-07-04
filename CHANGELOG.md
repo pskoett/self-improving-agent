@@ -17,6 +17,37 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-04
+
+### Added
+
+- **Pattern-Key generalized to all three log files**: the `ERRORS.md` and
+  `FEATURE_REQUESTS.md` entry formats now carry a `Pattern-Key` field
+  (recommended for errors, optional for features), joining `LEARNINGS.md`
+  where it was previously limited to the simplify-and-harden feed.
+- **Pattern-Key Taxonomy** section in `SKILL.md`: controlled `area.symptom`
+  namespaces (`api`, `auth`, `build`, `config`, `deps`, `fs`, `net`,
+  `runtime`, `shell`, `vcs`, plus `simplify`/`harden`), with reuse-before-mint
+  and one-key-per-entry rules.
+- The OpenClaw session-end error sweep stamps deterministic `Pattern-Key`
+  values on auto-detected entries (e.g. `ModuleNotFoundError` →
+  `deps.module-not-found`), making them recurrence-countable with no agent
+  discipline required.
+
+### Changed
+
+- Grep-by-`Pattern-Key` is now the documented **default dedup step** when
+  logging; keyword grep is the fallback. Recurrences are folded into the
+  existing entry (`Recurrence-Count`, `Last-Seen`, `See Also`) instead of
+  duplicated.
+
+### Upgrade notes (0.2.0 → 0.3.0)
+
+1. Re-copy the OpenClaw hook and restart the gateway (see general rules
+   above) to get Pattern-Key stamping on swept entries.
+2. Existing `.learnings/` entries without `Pattern-Key` remain valid — the
+   field is additive. Add keys opportunistically when touching old entries.
+
 ## [0.2.0] - 2026-07-04
 
 ### Added

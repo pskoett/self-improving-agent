@@ -236,7 +236,10 @@ error sweep**:
 3. Matches are appended to `<workspace>/.learnings/ERRORS.md` as a `pending`
    entry with `Source: openclaw-error-sweep`, containing at most 5 short
    excerpts (truncated to 200 chars, common secret shapes redacted,
-   duplicates skipped).
+   duplicates skipped). Each entry is stamped with deterministic
+   `Pattern-Key` values derived from the matched pattern (for example
+   `ModuleNotFoundError` → `deps.module-not-found`), so recurrences can be
+   counted by key during triage — see the Pattern-Key Taxonomy in `SKILL.md`.
 4. At the next `agent:bootstrap`, the injected reminder includes a
    **pending triage** note so the agent reviews the auto-detected entries —
    confirming real errors, filling in fixes, or deleting noise.

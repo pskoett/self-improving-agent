@@ -50,26 +50,35 @@ Before logging:
 
 Keep entries simple: date, title, what happened, and what to do differently.`;
 
-// Keep in sync with scripts/error-detector.sh (Claude Code PostToolUse hook).
-const ERROR_PATTERNS = [
-  'error:',
-  'Error:',
-  'ERROR:',
-  'failed',
-  'FAILED',
-  'command not found',
-  'No such file',
-  'Permission denied',
-  'fatal:',
-  'Exception',
-  'Traceback',
-  'npm ERR!',
-  'ModuleNotFoundError',
-  'SyntaxError',
-  'TypeError',
-  'exit code',
-  'non-zero',
+// Keep the pattern set in sync with scripts/error-detector.sh (Claude Code
+// PostToolUse hook). Ordered specific → generic: the first matching pattern
+// supplies the Pattern-Key stamped on swept entries, which is what makes
+// auto-detected errors dedup-able and recurrence-countable (see the
+// "Pattern-Key Taxonomy" section in SKILL.md).
+const ERROR_PATTERN_KEYS: Array<[string, string]> = [
+  ['command not found', 'shell.command-not-found'],
+  ['No such file', 'fs.no-such-file'],
+  ['Permission denied', 'fs.permission-denied'],
+  ['ModuleNotFoundError', 'deps.module-not-found'],
+  ['npm ERR!', 'deps.npm-error'],
+  ['Traceback', 'runtime.python-exception'],
+  ['SyntaxError', 'runtime.syntax-error'],
+  ['TypeError', 'runtime.type-error'],
+  ['Exception', 'runtime.exception'],
+  ['fatal:', 'vcs.fatal-error'],
+  ['exit code', 'shell.nonzero-exit'],
+  ['non-zero', 'shell.nonzero-exit'],
+  ['error:', 'runtime.error'],
+  ['Error:', 'runtime.error'],
+  ['ERROR:', 'runtime.error'],
+  ['failed', 'runtime.failure'],
+  ['FAILED', 'runtime.failure'],
 ];
+
+interface SweepExcerpt {
+  excerpt: string;
+  patternKey: string;
+}
 
 const SWEEP_SOURCE = 'openclaw-error-sweep';
 const MAX_EXCERPTS = 5;
@@ -144,11 +153,16 @@ function collectTextFragments(value: unknown, out: string[], depth = 0): void {
   }
 }
 
-function lineMatchesErrorPattern(line: string): boolean {
-  return ERROR_PATTERNS.some((pattern) => line.includes(pattern));
+function matchErrorPatternKey(line: string): string | null {
+  for (const [pattern, patternKey] of ERROR_PATTERN_KEYS) {
+    if (line.includes(pattern)) {
+      return patternKey;
+    }
+  }
+  return null;
 }
 
-async function scanTranscriptForErrors(sessionFilePath: string): Promise<string[]> {
+async function scanTranscriptForErrors(sessionFilePath: string): Promise<SweepExcerpt[]> {
   let raw: string;
   try {
     raw = await fs.readFile(sessionFilePath, 'utf-8');
@@ -156,7 +170,7 @@ async function scanTranscriptForErrors(sessionFilePath: string): Promise<string[
     return [];
   }
 
-  const excerpts: string[] = [];
+  const excerpts: SweepExcerpt[] = [];
   const seen = new Set<string>();
 
   for (const jsonLine of raw.split('\n')) {
@@ -183,7 +197,8 @@ async function scanTranscriptForErrors(sessionFilePath: string): Promise<string[
 
     for (const fragment of fragments) {
       for (const line of fragment.split('\n')) {
-        if (!lineMatchesErrorPattern(line)) {
+        const patternKey = matchErrorPatternKey(line);
+        if (!patternKey) {
           continue;
         }
         const excerpt = sanitizeExcerptLine(line);
@@ -191,7 +206,7 @@ async function scanTranscriptForErrors(sessionFilePath: string): Promise<string[
           continue;
         }
         seen.add(excerpt);
-        excerpts.push(excerpt);
+        excerpts.push({ excerpt, patternKey });
         if (excerpts.length >= MAX_EXCERPTS) {
           return excerpts;
         }
@@ -233,7 +248,7 @@ function generateEntryId(timestamp: Date): string {
 }
 
 function formatErrorEntry(params: {
-  excerpts: string[];
+  excerpts: SweepExcerpt[];
   sessionKey: string;
   sessionFilePath: string;
   action: string;
@@ -241,6 +256,7 @@ function formatErrorEntry(params: {
 }): string {
   const { excerpts, sessionKey, sessionFilePath, action, timestamp } = params;
   const plural = excerpts.length === 1 ? '' : 's';
+  const patternKeys = [...new Set(excerpts.map((item) => item.patternKey))];
 
   return [
     `## [${generateEntryId(timestamp)}] openclaw_session_sweep`,
@@ -255,7 +271,7 @@ function formatErrorEntry(params: {
     '',
     '### Error',
     '```',
-    ...excerpts,
+    ...excerpts.map((item) => item.excerpt),
     '```',
     '',
     '### Context',
@@ -265,11 +281,12 @@ function formatErrorEntry(params: {
     '- Excerpts are truncated and redacted; check the transcript for full context',
     '',
     '### Suggested Fix',
-    'Triage this entry: if the error was real and non-obvious, keep it and fill in the fix; otherwise mark it resolved or delete it.',
+    'Triage this entry: if the error was real and non-obvious, keep it and fill in the fix; otherwise mark it resolved or delete it. Before keeping it, grep for its Pattern-Key(s) and fold recurrences into the existing entry (bump Recurrence-Count) instead of duplicating.',
     '',
     '### Metadata',
     `- Source: ${SWEEP_SOURCE}`,
     '- Reproducible: unknown',
+    ...patternKeys.map((patternKey) => `- Pattern-Key: ${patternKey}`),
     '',
     '---',
   ].join('\n');
@@ -314,7 +331,7 @@ async function handleSessionEndSweep(event: HookEvent): Promise<void> {
     // Missing file is fine; it is created below.
   }
 
-  const freshExcerpts = excerpts.filter((excerpt) => !existing.includes(excerpt));
+  const freshExcerpts = excerpts.filter((item) => !existing.includes(item.excerpt));
   if (freshExcerpts.length === 0) {
     return;
   }

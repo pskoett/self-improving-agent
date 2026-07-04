@@ -1,7 +1,7 @@
 ---
 name: self-improvement
 description: "Captures learnings, errors, and corrections to enable continuous improvement. Use when: (1) A command or operation fails unexpectedly, (2) User corrects Claude ('No, that's wrong...', 'Actually...'), (3) User requests a capability that doesn't exist, (4) An external API or tool fails, (5) Claude realizes its knowledge is outdated or incorrect, (6) A better approach is discovered for a recurring task. Also review learnings before major tasks."
-version: "0.2.0"
+version: "0.3.0"
 metadata:
 ---
 
@@ -37,7 +37,7 @@ If you want automatic reminders or setup assistance, use the opt-in hook workflo
 | Knowledge was outdated | Log to `.learnings/LEARNINGS.md` with category `knowledge_gap` |
 | Found better approach | Log to `.learnings/LEARNINGS.md` with category `best_practice` |
 | Simplify/Harden recurring patterns | Log/update `.learnings/LEARNINGS.md` with `Source: simplify-and-harden` and a stable `Pattern-Key` |
-| Similar to existing entry | Link with `**See Also**`, consider priority bump |
+| Similar to existing entry | Grep by `Pattern-Key` first, link with `**See Also**`, bump `Recurrence-Count` |
 | Broadly applicable learning | Promote to `CLAUDE.md`, `AGENTS.md`, and/or `.github/copilot-instructions.md` |
 | Workflow improvements | Promote to `AGENTS.md` (OpenClaw workspace) |
 | Tool gotchas | Promote to `TOOLS.md` (OpenClaw workspace) |
@@ -189,7 +189,7 @@ Specific fix or improvement to make
 - Related Files: path/to/file.ext
 - Tags: tag1, tag2
 - See Also: LRN-20250110-001 (if related to existing entry)
-- Pattern-Key: simplify.dead_code | harden.input_validation (optional, for recurring-pattern tracking)
+- Pattern-Key: area.symptom (recommended; e.g. deps.module-not-found, simplify.dead_code — see Pattern-Key Taxonomy)
 - Recurrence-Count: 1 (optional)
 - First-Seen: 2025-01-15 (optional)
 - Last-Seen: 2025-01-15 (optional)
@@ -230,6 +230,10 @@ If identifiable, what might resolve this
 - Reproducible: yes | no | unknown
 - Related Files: path/to/file.ext
 - See Also: ERR-20250110-001 (if recurring)
+- Pattern-Key: area.symptom (recommended; e.g. net.connection-refused — see Pattern-Key Taxonomy)
+- Recurrence-Count: 1 (optional)
+- First-Seen: 2025-01-15 (optional)
+- Last-Seen: 2025-01-15 (optional)
 
 ---
 ```
@@ -261,6 +265,7 @@ How this could be built, what it might extend
 ### Metadata
 - Frequency: first_time | recurring
 - Related Features: existing_feature_name
+- Pattern-Key: area.symptom (optional — features usually dedupe by capability name; use a key only for recurring themes, e.g. api.missing-endpoint)
 
 ---
 ```
@@ -345,14 +350,61 @@ When a learning is broadly applicable (not a one-off fix), promote it to permane
 2. Check for type errors: `pnpm tsc --noEmit`
 ```
 
+## Pattern-Key Taxonomy
+
+`Pattern-Key` is the stable dedup and recurrence key for entries in all three
+log files. Keyword grep misses semantically identical but differently-worded
+entries ("ECONNREFUSED on api.foo.com" vs "connection refused talking to foo
+API"); a shared key does not. Keys are what make `Recurrence-Count` — and the
+promotion rule that depends on it — reliable.
+
+**Format**: `area.symptom` — exactly two levels, lowercase, hyphenated symptom
+(e.g. `deps.module-not-found`). Keep the symptom generic enough to recur: no
+file names, package versions, or hostnames in keys.
+
+### Namespaces
+
+| Area | Scope | Example Keys |
+|------|-------|--------------|
+| `api` | External API/service behavior | `api.rate-limit`, `api.schema-mismatch`, `api.missing-endpoint` |
+| `auth` | Credentials, tokens, scopes | `auth.token-expired`, `auth.missing-scope` |
+| `build` | Compilation, bundling, CI | `build.type-error`, `build.missing-artifact` |
+| `config` | Config files, env vars, settings | `config.missing-env`, `config.invalid-json` |
+| `deps` | Package managers, dependencies | `deps.module-not-found`, `deps.npm-error`, `deps.version-conflict` |
+| `fs` | Filesystem | `fs.no-such-file`, `fs.permission-denied` |
+| `net` | Network connectivity | `net.connection-refused`, `net.timeout` |
+| `runtime` | Language/runtime errors not covered above | `runtime.type-error`, `runtime.python-exception` |
+| `shell` | Shell/CLI mechanics | `shell.command-not-found`, `shell.nonzero-exit` |
+| `vcs` | Git and other version control | `vcs.fatal-error`, `vcs.merge-conflict` |
+| `simplify` / `harden` | Code-quality patterns from the simplify-and-harden feed | `simplify.dead_code`, `harden.input_validation` |
+
+### Rules
+
+1. **Reuse before minting**: `grep -rhn "Pattern-Key:" .learnings/ | sort -u`
+   and pick an existing key if it fits. A near-match beats a new key.
+2. **One key per manual entry**: if two apply, pick the dominant one and note
+   the other in Tags or See Also. (Auto-swept OpenClaw entries may carry one
+   `Pattern-Key:` line per detected pattern — reduce to one when triaging.)
+3. **Mint new namespaces sparingly**: prefer fitting an existing area; a new
+   area is justified only when several entries would share it.
+4. **Generic sweep keys are provisional**: `runtime.error` / `runtime.failure`
+   from the OpenClaw sweep mean "unclassified" — replace with a more specific
+   key during triage when the cause is understood.
+
 ## Recurring Pattern Detection
 
 If logging something similar to an existing entry:
 
-1. **Search first**: `grep -r "keyword" .learnings/`
-2. **Link entries**: Add `**See Also**: ERR-20250110-001` in Metadata
-3. **Bump priority** if issue keeps recurring
-4. **Consider systemic fix**: Recurring issues often indicate:
+1. **Search by key first**: `grep -n "Pattern-Key: area.symptom" .learnings/*.md`
+   — this is the default dedup check and catches rewordings that keyword
+   search misses
+2. **Fallback keyword search**: `grep -ri "keyword" .learnings/` for entries
+   logged without a key
+3. **Fold, don't duplicate**: on a hit, update the existing entry — bump
+   `Recurrence-Count`, set `Last-Seen`, add `**See Also**` — instead of
+   creating a new one
+4. **Bump priority** if issue keeps recurring
+5. **Consider systemic fix**: Recurring issues often indicate:
    - Missing documentation (→ promote to CLAUDE.md or .github/copilot-instructions.md)
    - Missing automation (→ add to AGENTS.md)
    - Architectural problem (→ create tech debt ticket)

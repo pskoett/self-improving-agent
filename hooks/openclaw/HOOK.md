@@ -30,6 +30,10 @@ the OpenClaw-native alternative: a session-end error sweep.
   (`Error:`, `command not found`, `Traceback`, `npm ERR!`, …)
 - Appends a `pending` entry to `<workspace>/.learnings/ERRORS.md` with short,
   truncated, redacted excerpts (max 5 per sweep) for the next session to triage
+- Stamps each entry with deterministic `Pattern-Key` values derived from the
+  matched pattern (e.g. `deps.module-not-found`, `shell.command-not-found`),
+  so auto-detected errors can be deduplicated and recurrence-counted by key
+  (see the Pattern-Key Taxonomy in `SKILL.md`)
 
 ## Opt-In and Safety
 
