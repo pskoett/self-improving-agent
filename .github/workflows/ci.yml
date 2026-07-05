@@ -16,14 +16,14 @@ jobs:
           node-version: 22
 
       - name: Unit tests (OpenClaw hook)
-        run: node --test hooks/openclaw/handler.test.js
+        run: node --test self-improving-agent/hooks/openclaw/handler.test.js
 
       - name: Type-check handler.ts
         run: |
           npm install --no-save --no-package-lock --no-audit --no-fund typescript@5 @types/node
           npx --no-install tsc --noEmit --strict --skipLibCheck \
             --module nodenext --moduleResolution nodenext --target es2022 \
-            hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts
+            self-improving-agent/hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts
 
       - name: Shell syntax check
-        run: bash -n scripts/extract-skill.sh
+        run: bash -n self-improving-agent/scripts/extract-skill.sh
