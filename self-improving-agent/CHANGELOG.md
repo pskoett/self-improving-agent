@@ -9,8 +9,8 @@ Read this before upgrading. General upgrade rules:
 
 - **OpenClaw hook changes only take effect after re-copying and restarting.**
   The hook runs from a copy: re-run
-  `cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement` and restart the
-  gateway after upgrading.
+  `cp -r ~/.openclaw/skills/self-improving-agent/hooks/openclaw ~/.openclaw/hooks/self-improvement`
+  and restart the gateway after upgrading.
 - `.learnings/` files are user data and are never migrated or overwritten by
   upgrades; first-use initialisation is idempotent and only creates missing
   files.
@@ -19,9 +19,23 @@ Read this before upgrading. General upgrade rules:
 
 ### Added
 
-- GitHub Actions CI (`.github/workflows/ci.yml`): runs the hook test suite,
-  type-checks `handler.ts` (strict mode, against a CI-only type stub), and
-  syntax-checks `extract-skill.sh` on every push to master and every PR.
+- GitHub Actions CI (`.github/workflows/ci.yml` at the repo root): runs the
+  hook test suite, type-checks `handler.ts` (strict mode, against a CI-only
+  type stub), and syntax-checks `extract-skill.sh` on every push to master
+  and every PR.
+
+### Changed
+
+- **Repo restructured for ClawdHub publishing**: the skill package now lives
+  in the repo's `self-improving-agent/` subfolder (SKILL.md, assets, hooks,
+  references, scripts, this changelog), keeping repo-level files (README,
+  `.github/`) out of the published skill. Install by copying the subfolder,
+  not the repo root — install/upgrade commands in the docs are updated.
+- `SKILL.md` frontmatter `name` corrected from `self-improvement` to
+  `self-improving-agent` to match the skill folder name, as the Agent Skills
+  spec requires. The OpenClaw *hook* keeps its `self-improvement` name, so
+  existing hook installs and `openclaw hooks enable self-improvement` are
+  unaffected.
 
 ## [0.4.0] - 2026-07-04
 

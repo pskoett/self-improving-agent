@@ -1,5 +1,5 @@
 ---
-name: self-improvement
+name: self-improving-agent
 description: "Captures learnings, errors, and corrections to enable continuous improvement. Use when: (1) A command or operation fails unexpectedly, (2) User corrects Claude ('No, that's wrong...', 'Actually...'), (3) User requests a capability that doesn't exist, (4) An external API or tool fails, (5) Claude realizes its knowledge is outdated or incorrect, (6) A better approach is discovered for a recurring task. Also review learnings before major tasks."
 version: "0.4.0"
 metadata:
@@ -53,9 +53,11 @@ OpenClaw uses workspace-based prompt injection with automatic skill loading.
 clawdhub install self-improving-agent
 ```
 
-**Manual:**
+**Manual** (the skill lives in the repo's `self-improving-agent/` subfolder;
+copy that folder, not the repo root):
 ```bash
-git clone https://github.com/peterskoett/self-improving-agent.git ~/.openclaw/skills/self-improving-agent
+git clone https://github.com/peterskoett/self-improving-agent.git /tmp/self-improving-agent-repo
+cp -r /tmp/self-improving-agent-repo/self-improving-agent ~/.openclaw/skills/self-improving-agent
 ```
 
 Remade for openclaw from original repo : https://github.com/pskoett/pskoett-ai-skills - https://github.com/pskoett/pskoett-ai-skills/tree/main/skills/self-improvement
@@ -115,7 +117,7 @@ Use these only in trusted environments and only when the user explicitly wants c
 For automatic reminders at session start and error detection at session end:
 
 ```bash
-cp -r hooks/openclaw ~/.openclaw/hooks/self-improvement
+cp -r ~/.openclaw/skills/self-improving-agent/hooks/openclaw ~/.openclaw/hooks/self-improvement
 openclaw hooks enable self-improvement
 ```
 
