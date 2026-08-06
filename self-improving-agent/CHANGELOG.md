@@ -17,6 +17,19 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-08-06
+
+### Fixed
+
+- **Install commands and clone URL in the docs were wrong** (#24). The
+  advertised `clawdhub install` command does not exist; the working commands
+  are `openclaw skills install self-improving-agent` (built-in) and
+  `clawhub install self-improving-agent` (ClawHub CLI, `npm i -g clawhub`).
+  Both are now documented in `README.md`, `SKILL.md`, and
+  `references/openclaw-integration.md`. The manual `git clone` URL also used
+  the wrong owner handle (`peterskoett` → `pskoett`); the old handle only
+  resolved via a web redirect, so `git clone` failed on a fresh machine.
+
 ### Added
 
 - GitHub Actions CI (`.github/workflows/ci.yml` at the repo root): runs the
@@ -26,7 +39,7 @@ Read this before upgrading. General upgrade rules:
 
 ### Changed
 
-- **Repo restructured for ClawdHub publishing**: the skill package now lives
+- **Repo restructured for ClawHub publishing**: the skill package now lives
   in the repo's `self-improving-agent/` subfolder (SKILL.md, assets, hooks,
   references, scripts, this changelog), keeping repo-level files (README,
   `.github/`) out of the published skill. Install by copying the subfolder,
@@ -36,6 +49,11 @@ Read this before upgrading. General upgrade rules:
   spec requires. The OpenClaw *hook* keeps its `self-improvement` name, so
   existing hook installs and `openclaw hooks enable self-improvement` are
   unaffected.
+
+### Upgrade notes (4.0.0 → 4.0.1)
+
+Documentation only — no skill behavior, hook, or `.learnings/` changes. No
+action needed beyond reinstalling if you want the corrected install docs.
 
 ## [4.0.0] - 2026-07-04
 
