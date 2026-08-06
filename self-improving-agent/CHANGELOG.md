@@ -17,7 +17,10 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
-## [4.0.1] - 2026-08-06
+## [4.0.2] - 2026-08-06
+
+> 4.0.1 is skipped: that version number was already used by a build
+> published to ClawHub, so it is not reusable here.
 
 ### Fixed
 
@@ -50,7 +53,7 @@ Read this before upgrading. General upgrade rules:
   existing hook installs and `openclaw hooks enable self-improvement` are
   unaffected.
 
-### Upgrade notes (4.0.0 → 4.0.1)
+### Upgrade notes (4.0.x → 4.0.2)
 
 Documentation only — no skill behavior, hook, or `.learnings/` changes. No
 action needed beyond reinstalling if you want the corrected install docs.
