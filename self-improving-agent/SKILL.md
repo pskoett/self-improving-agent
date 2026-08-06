@@ -48,14 +48,16 @@ OpenClaw uses workspace-based prompt injection with automatic skill loading.
 
 ### Installation
 
-**Via OpenClaw's built-in installer (recommended):**
+**Via OpenClaw's built-in installer (recommended)** — installs into the
+active OpenClaw workspace:
 ```bash
-openclaw skills install self-improving-agent
+openclaw skills install @pskoett/self-improving-agent
 ```
 
-**Via the ClawHub CLI** (`npm i -g clawhub`):
+**Via the ClawHub CLI** (`npm i -g clawhub`) — installs into `./skills`
+under the current working directory, not the workspace:
 ```bash
-clawhub install self-improving-agent
+clawhub install @pskoett/self-improving-agent
 ```
 
 **Manual** (the skill lives in the repo's `self-improving-agent/` subfolder;

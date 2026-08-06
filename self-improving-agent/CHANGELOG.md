@@ -25,13 +25,18 @@ Read this before upgrading. General upgrade rules:
 ### Fixed
 
 - **Install commands and clone URL in the docs were wrong** (#24). The
-  advertised `clawdhub install` command does not exist; the working commands
-  are `openclaw skills install self-improving-agent` (built-in) and
-  `clawhub install self-improving-agent` (ClawHub CLI, `npm i -g clawhub`).
-  Both are now documented in `README.md`, `SKILL.md`, and
-  `references/openclaw-integration.md`. The manual `git clone` URL also used
-  the wrong owner handle (`peterskoett` → `pskoett`); the old handle only
-  resolved via a web redirect, so `git clone` failed on a fresh machine.
+  advertised `clawdhub install` command does not exist. The documented
+  commands are now `openclaw skills install @pskoett/self-improving-agent`
+  (built-in, installs into the active workspace) and
+  `clawhub install @pskoett/self-improving-agent` (ClawHub CLI,
+  `npm i -g clawhub`, installs into `./skills` under the current working
+  directory). Both take the `@owner/slug` form — a bare slug is only
+  accepted for already-installed or unambiguous skills. Fixed in
+  `README.md`, `SKILL.md`, and `references/openclaw-integration.md`.
+- The manual `git clone` URL used the wrong owner handle
+  (`peterskoett` → `pskoett`). The old handle only resolved via a web
+  redirect, which `git clone` does not follow, so manual installs failed on
+  a fresh machine.
 
 ### Added
 

@@ -19,16 +19,18 @@ outside the package on purpose.
 
 ## Installation
 
-With OpenClaw's built-in skill installer:
+With OpenClaw's built-in skill installer — this installs into the active
+OpenClaw workspace:
 
 ```bash
-openclaw skills install self-improving-agent
+openclaw skills install @pskoett/self-improving-agent
 ```
 
-Or with the ClawHub CLI (`npm i -g clawhub`):
+Or with the ClawHub CLI (`npm i -g clawhub`). Note this installs into
+`./skills` under the current working directory, not the workspace:
 
 ```bash
-clawhub install self-improving-agent
+clawhub install @pskoett/self-improving-agent
 ```
 
 Or manually — copy the skill subfolder (not the repo root):
