@@ -31,14 +31,21 @@ OpenClaw uses workspace-based prompt injection combined with event-driven hooks.
 ### 1. Install the Skill
 
 ```bash
-clawdhub install self-improving-agent
+openclaw skills install @pskoett/self-improving-agent
+```
+
+Or with the ClawHub CLI (`npm i -g clawhub`) — note this installs into
+`./skills` under the current working directory, not the workspace:
+
+```bash
+clawhub install @pskoett/self-improving-agent
 ```
 
 Or copy manually — the skill package is the `self-improving-agent/`
 subfolder of the repo, not the repo root:
 
 ```bash
-git clone https://github.com/peterskoett/self-improving-agent.git /tmp/self-improving-agent-repo
+git clone https://github.com/pskoett/self-improving-agent.git /tmp/self-improving-agent-repo
 cp -r /tmp/self-improving-agent-repo/self-improving-agent ~/.openclaw/skills/self-improving-agent
 ```
 

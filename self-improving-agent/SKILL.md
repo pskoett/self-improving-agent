@@ -1,7 +1,7 @@
 ---
 name: self-improving-agent
 description: "Captures learnings, errors, and corrections to enable continuous improvement. Use when: (1) A command or operation fails unexpectedly, (2) User corrects Claude ('No, that's wrong...', 'Actually...'), (3) User requests a capability that doesn't exist, (4) An external API or tool fails, (5) Claude realizes its knowledge is outdated or incorrect, (6) A better approach is discovered for a recurring task. Also review learnings before major tasks."
-version: "4.0.0"
+version: "4.0.2"
 metadata:
 ---
 
@@ -48,15 +48,22 @@ OpenClaw uses workspace-based prompt injection with automatic skill loading.
 
 ### Installation
 
-**Via ClawdHub (recommended):**
+**Via OpenClaw's built-in installer (recommended)** — installs into the
+active OpenClaw workspace:
 ```bash
-clawdhub install self-improving-agent
+openclaw skills install @pskoett/self-improving-agent
+```
+
+**Via the ClawHub CLI** (`npm i -g clawhub`) — installs into `./skills`
+under the current working directory, not the workspace:
+```bash
+clawhub install @pskoett/self-improving-agent
 ```
 
 **Manual** (the skill lives in the repo's `self-improving-agent/` subfolder;
 copy that folder, not the repo root):
 ```bash
-git clone https://github.com/peterskoett/self-improving-agent.git /tmp/self-improving-agent-repo
+git clone https://github.com/pskoett/self-improving-agent.git /tmp/self-improving-agent-repo
 cp -r /tmp/self-improving-agent-repo/self-improving-agent ~/.openclaw/skills/self-improving-agent
 ```
 

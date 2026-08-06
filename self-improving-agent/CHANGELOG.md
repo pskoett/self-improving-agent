@@ -17,6 +17,27 @@ Read this before upgrading. General upgrade rules:
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-08-06
+
+> 4.0.1 is skipped: that version number was already used by a build
+> published to ClawHub, so it is not reusable here.
+
+### Fixed
+
+- **Install commands and clone URL in the docs were wrong** (#24). The
+  advertised `clawdhub install` command does not exist. The documented
+  commands are now `openclaw skills install @pskoett/self-improving-agent`
+  (built-in, installs into the active workspace) and
+  `clawhub install @pskoett/self-improving-agent` (ClawHub CLI,
+  `npm i -g clawhub`, installs into `./skills` under the current working
+  directory). Both take the `@owner/slug` form — a bare slug is only
+  accepted for already-installed or unambiguous skills. Fixed in
+  `README.md`, `SKILL.md`, and `references/openclaw-integration.md`.
+- The manual `git clone` URL used the wrong owner handle
+  (`peterskoett` → `pskoett`). The old handle only resolved via a web
+  redirect, which `git clone` does not follow, so manual installs failed on
+  a fresh machine.
+
 ### Added
 
 - GitHub Actions CI (`.github/workflows/ci.yml` at the repo root): runs the
@@ -26,7 +47,7 @@ Read this before upgrading. General upgrade rules:
 
 ### Changed
 
-- **Repo restructured for ClawdHub publishing**: the skill package now lives
+- **Repo restructured for ClawHub publishing**: the skill package now lives
   in the repo's `self-improving-agent/` subfolder (SKILL.md, assets, hooks,
   references, scripts, this changelog), keeping repo-level files (README,
   `.github/`) out of the published skill. Install by copying the subfolder,
@@ -36,6 +57,11 @@ Read this before upgrading. General upgrade rules:
   spec requires. The OpenClaw *hook* keeps its `self-improvement` name, so
   existing hook installs and `openclaw hooks enable self-improvement` are
   unaffected.
+
+### Upgrade notes (4.0.x → 4.0.2)
+
+Documentation only — no skill behavior, hook, or `.learnings/` changes. No
+action needed beyond reinstalling if you want the corrected install docs.
 
 ## [4.0.0] - 2026-07-04
 
