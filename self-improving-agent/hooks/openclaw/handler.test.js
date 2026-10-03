@@ -11,7 +11,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { test, beforeEach, afterEach } = require('node:test');
 
-const handler = require('./handler.js');
+const handler = require('./handler.js').default;
 
 let workspaceDir;
 
@@ -76,7 +76,46 @@ test('bootstrap injects the reminder as a virtual file', async () => {
   assert.equal(injected.path, 'SELF_IMPROVEMENT_REMINDER.md');
   assert.equal(injected.virtual, true);
   assert.match(injected.content, /## Self-Improvement Reminder/);
+  assert.match(injected.content, /one-off and unpromoted learnings/);
+  assert.match(injected.content, /Type determines how to check; rate determines when/);
+  assert.match(injected.content, /unavailable\/conflicting evidence stays unresolved/);
   assert.doesNotMatch(injected.content, /Pending triage/);
+});
+
+test('bootstrap reminds without rewriting legacy history or validating claims', async () => {
+  await fs.mkdir(path.join(workspaceDir, '.learnings'));
+  const legacy = '# Errors\n\n## [ERR-20200101-OLD] old safeguard\n' +
+    '**Status**: promoted\n- Source: openclaw-error-sweep\n' +
+    '- Recurrence-Count: 2\n- Last-Seen: 2020-01-01\n**Promoted**: TOOLS.md\n';
+  await fs.writeFile(errorsFile(), legacy);
+  const event = makeBootstrapEvent();
+  await handler(event);
+  await handler(event);
+  assert.equal(await fs.readFile(errorsFile(), 'utf-8'), legacy);
+  assert.equal(event.context.bootstrapFiles.length, 1);
+  assert.doesNotMatch(event.context.bootstrapFiles[0].content, /Pending triage/);
+});
+
+test('mixed sweep errors remain unclassified and unvalidated until triage', async () => {
+  await fs.mkdir(path.join(workspaceDir, '.learnings'));
+  const sessionFile = await writeTranscript([
+    toolResultLine('npm ERR! code E404'),
+    toolResultLine('Permission denied (publickey)'),
+  ]);
+  await handler(makeCommandEvent('reset', sessionFile));
+  const first = await fs.readFile(errorsFile(), 'utf-8');
+  assert.match(first, /- Pattern-Key: deps\.npm-error/);
+  assert.match(first, /- Pattern-Key: fs\.permission-denied/);
+  assert.match(first, /- Claim: unknown — possible unrelated errors; needs triage/);
+  assert.match(first, /- Decay: unknown \/ unknown/);
+  assert.match(first, /- Validation: pending/);
+  assert.match(first, /- Evidence: none yet/);
+  assert.match(first, /preserve this sweep/);
+  assert.doesNotMatch(first, /- Decay: (dependency|reality|decision|relevance)/);
+  assert.doesNotMatch(first, /- Validation: verified|Recurrence-Count:|delete it/);
+  await handler(makeCommandEvent('reset', sessionFile));
+  await handler(makeBootstrapEvent());
+  assert.equal(await fs.readFile(errorsFile(), 'utf-8'), first);
 });
 
 test('bootstrap skips sub-agent sessions', async () => {

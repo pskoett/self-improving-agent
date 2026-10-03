@@ -43,7 +43,13 @@ Before logging:
 - You discover your knowledge was wrong → \`.learnings/LEARNINGS.md\`
 - You find a better approach → \`.learnings/LEARNINGS.md\`
 
-**Promote when pattern is proven:**
+**Maintain before reuse or promotion:**
+- Review relevant/due claims, including one-off and unpromoted learnings; use the skill's Maintenance workflow
+- Type determines how to check; rate determines when; changed dependencies trigger checks, not retirement
+- Record actual dated evidence; unavailable/conflicting evidence stays unresolved
+- Preserve history and source links; never retire by age or count a review as recurrence
+
+**Promote supported, scoped guidance:**
 - Behavioral patterns → \`SOUL.md\`
 - Workflow improvements → \`AGENTS.md\`
 - Tool gotchas → \`TOOLS.md\`
@@ -280,12 +286,23 @@ function formatErrorEntry(params: {
     '- Excerpts are truncated and redacted; check the transcript for full context',
     '',
     '### Suggested Fix',
-    'Triage this entry: if the error was real and non-obvious, keep it and fill in the fix; otherwise mark it resolved or delete it. Before keeping it, grep for its Pattern-Key(s) and fold recurrences into the existing entry (bump Recurrence-Count) instead of duplicating.',
+    'Triage each possible error and reusable claim separately; preserve this sweep and link any follow-up entries. Mark false positives with a reason, not deletion. Pattern-Keys are search hints, not decay classifications. Count only confirmed new occurrences of the same scoped claim, never reviews. Initialize cause/rate and validate through the skill Maintenance workflow before reuse or promotion.',
     '',
     '### Metadata',
     `- Source: ${SWEEP_SOURCE}`,
     '- Reproducible: unknown',
     ...patternKeys.map((patternKey) => `- Pattern-Key: ${patternKey}`),
+    '',
+    '### Maintenance',
+    '- Claim: unknown — possible unrelated errors; needs triage',
+    '- Scope: unknown',
+    '- Authority: unknown',
+    '- Decay: unknown / unknown',
+    '- Revalidate: during triage before reuse; identify claims and choose cause-specific checks',
+    '- Validation: pending',
+    '- Evidence: none yet — excerpts are detection candidates, not validation',
+    '- Disposition: retain — provisional, not validated',
+    '- Guidance: none',
     '',
     '---',
   ].join('\n');
@@ -410,7 +427,7 @@ async function handleBootstrap(event: HookEvent): Promise<void> {
     reminderContent +=
       `\n\n**Pending triage:** ${pendingSweepCount} auto-detected error entr${plural} ` +
       `(Source: ${SWEEP_SOURCE}) in \`.learnings/ERRORS.md\` await review. ` +
-      'Confirm, resolve, or delete them when convenient.';
+      'Triage individual claims; preserve the sweep and mark false positives with a reason.';
   }
 
   const cleanedBootstrapFiles = context.bootstrapFiles.filter(

@@ -1,6 +1,6 @@
 # Entry Examples
 
-Concrete examples of well-formatted entries with all fields.
+Illustrative entries, not evidence about your environment. Older examples below deliberately show legacy entries without Maintenance; add it on relevant review, not by bulk migration. A resolved or promoted example is not automatically valid for reuse. See [Maintenance Examples](#maintenance-examples) for the full review workflow.
 
 ## Learning: Correction
 
@@ -296,7 +296,7 @@ Add `--platform linux/amd64` to docker build command, or use
 
 ## Extracted Skill Example
 
-When the above learning is extracted as a skill, it becomes:
+Historical extraction example, not current platform advice. Before extracting or reusing it, check the exact image manifest, target platform, runtime/configuration, and representative build/run behavior. Do not generalize one image's missing ARM variant to all Apple Silicon builds. Creating or changing the skill also needs scoped approval.
 
 **File**: `skills/docker-m1-fixes/SKILL.md`
 
@@ -369,6 +369,82 @@ alternatives when possible.
 ## Source
 
 - Learning ID: LRN-20250118-001
+- Original File: .learnings/LEARNINGS.md
 - Category: best_practice
 - Extraction Date: 2025-01-18
 ```
+
+## Maintenance Examples
+
+All sources, checks, and dates in this section are fictional worked examples. Record only checks actually performed in your workspace. Preserve the original entry's observations, metadata, resolution, and promotion history; append review notes rather than replacing them.
+
+### One-off dependency workaround: upgrade is a trigger, not proof
+
+An unpromoted `ERR-20250115-RND` recorded one renderer crash, resolved by disabling batching in renderer 2.4. The current project upgrades to 2.5. No recurrence is needed for maintenance. Add this block beside the incident:
+
+```markdown
+### Maintenance
+- Claim: disable batching to avoid the renderer crash
+- Scope: report exporter, renderer 2.4, Linux x64, parallel export configuration
+- Authority: pinned renderer/configuration and local reproducer tests/export-batching.test.js
+- Decay: dependency / medium
+- Revalidate: renderer/configuration change or export milestone; establish installed version/configuration, then run the parallel-export reproducer with batching on and off
+- Validation: unresolved
+- Evidence: 2025-01-15 — batching off avoided the observed crash on 2.4; 2025-02-03 — lockfile now pins 2.5, but test runner is unavailable; no 2.5 behavioral result
+- Disposition: retain — provisional workaround pending testing; not verified for 2.5
+- Guidance: none
+
+### Review — 2025-02-03
+Upgrade triggered review, not retirement. Original incident remains resolved;
+current reusable claim is unresolved. Next check: run the representative
+parallel-export reproducer on 2.5. Recurrence-Count remains 1; Last-Seen unchanged.
+```
+
+If later evidence shows batching-on passes only single-export tests, the parallel claim remains unresolved. If the representative parallel-export regression passes with batching on/off in the supported configuration, append the exact dated results, narrow the old claim to 2.4, and retire the disabling instruction for 2.5. Do not erase the 2.4 crash or call all future versions safe.
+
+### Promoted reality claim: externalize volatile detail, keep provenance
+
+The legacy `LRN-20250115-002` says “use pnpm” and notes promotion to `TOOLS.md`. During a relevant setup task, inspect the repository, not the age of that note. Suppose these reads actually occurred in the example workspace:
+
+```markdown
+### Maintenance
+- Claim: read this repo's declared package manager before installing
+- Scope: this repository's dependency installation
+- Authority: package.json#packageManager, lockfile, docs/build.md#installation
+- Decay: reality / fast
+- Revalidate: before dependency installation or after manifest/lockfile changes; read the declaration, compare the lockfile, consult build instructions/maintainer on conflict or missing data
+- Validation: verified
+- Evidence: 2025-02-04 — read package.json: packageManager=bun@1.2.0; bun.lock present; docs/build.md installation agrees. Retrieval locations accessible and consistent.
+- Disposition: externalize — retrieve the current value instead of freezing pnpm into active guidance
+- Guidance: TOOLS.md#Build & Dependencies; source LRN-20250115-002
+
+### Promotion History
+- 2025-01-15 — TOOLS.md#Build & Dependencies: "Use pnpm" (from original Resolution)
+
+### Review — 2025-02-04
+Old → new: "Use pnpm" → "Read package.json packageManager and compare the
+lockfile; use the declared manager. If absent/conflicting, consult
+docs/build.md#installation or the maintainer before installing."
+Updated TOOLS.md#Build & Dependencies within approved scope. Original
+observation and Resolution retained; no new occurrence counted.
+```
+
+The corresponding active guidance retains its source link:
+
+```markdown
+## Build & Dependencies
+- Before installing, read `package.json`'s `packageManager` and compare the lockfile. Use the declared manager. If absent/conflicting, consult `docs/build.md#installation` or the maintainer before installing. Source: .learnings/LEARNINGS.md#LRN-20250115-002
+```
+
+If the promoted copy is in a skill asset instead, record the proposed edit as pending and obtain scoped approval before modifying it. Do not claim propagation is done until the target has actually changed. If an authority is inaccessible, record `unresolved`, not a fresh successful-validation date.
+
+### Checks differ by cause; truth differs from usefulness
+
+| Saved claim and event | Appropriate review and outcome |
+|-----------------------|--------------------------------|
+| `reality / fast`: “service runs on host A”; infrastructure moved | Inspect current authoritative deployment inventory/environment. With evidence of host B, revise A → B with dated source, or externalize to the verified inventory lookup. A year-old incident on A stays in history. |
+| `decision / slow`: “use provider Y”; another team chooses Z | Check the decision register for an applicable effective superseding decision. The other team's choice alone does not supersede this team's decision. Retain Y if the current register confirms it; unresolved if the register is unavailable. |
+| `decision / durable`: “obtain approval before destructive changes”; old and rarely exercised | Retain the safeguard. Age/disuse is not supersession or permission to weaken policy. Recheck authoritative policy if challenged; do not discard it while evidence is blocked. |
+| `relevance / medium`: “use the CSV workaround for the legacy dashboard”; current task is API-only | Record that the workaround may remain true for the dashboard but is not useful for this task. Retain it scoped to the dashboard, or retire from active project guidance only if evidence establishes the dashboard is no longer used. |
+
+For mixed sweep entries containing an authentication error and a build error, keep `Decay: unknown / unknown` until each reusable claim is triaged. Regex matches, incident recovery, and repeat count cannot supply an authority or verify a general rule. Never change a user's formatting preference simply because a new task does not exercise it.

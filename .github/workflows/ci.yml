@@ -25,5 +25,15 @@ jobs:
             --module nodenext --moduleResolution nodenext --target es2022 \
             self-improving-agent/hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts
 
+      - name: Run the same tests against compiled TypeScript
+        run: |
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          npx --no-install tsc --outDir "$tmp" --strict --skipLibCheck \
+            --module commonjs --esModuleInterop --target es2022 \
+            self-improving-agent/hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts
+          cp self-improving-agent/hooks/openclaw/handler.test.js "$tmp/handler.test.js"
+          node --test "$tmp/handler.test.js"
+
       - name: Shell syntax check
         run: bash -n self-improving-agent/scripts/extract-skill.sh

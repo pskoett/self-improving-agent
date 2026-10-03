@@ -145,19 +145,23 @@ Log learnings to `.learnings/` for continuous improvement.
 
 ### Capturing Learnings
 
-1. **In-session**: Log to `.learnings/` as usual
-2. **Cross-session**: Promote to workspace files
+1. **Capture**: Log observations in `.learnings/` and put the reusable claim's Maintenance block beside the entry. Leave unknown classifications explicit; do not bulk-migrate legacy entries.
+2. **Review/reuse**: Select relevant/due claims, including one-off and unpromoted entries. Follow [SKILL.md Maintenance](../SKILL.md#maintenance-cause-aware-context-decay): type selects the check, rate selects cadence, relevant events override it. Record actual dated evidence, not just a review timestamp. Unavailable/conflicting evidence stays unresolved.
+3. **Promote**: Only supported, useful guidance goes into workspace/project files. Link it to the source learning file + ID and append the promotion date/target section to the source entry. Resolution and recurrence alone are not validation.
+4. **Maintain**: Retain, revise, externalize to a usable authoritative retrieval instruction, or retire from active guidance. Preserve observations, resolution, promotion and review history; follow source links to update affected guidance within granted scope. Reviews are not new occurrences.
+
+This workflow requires only this skill and the existing Markdown files. No companion skill, scheduler, background revalidation, or other memory backend is needed. The hook is optional and cannot enforce agent judgment or validate claims. Age/disuse never authorizes changing preferences, weakening security policy, or modifying skill assets; skill edits need explicit scoped approval.
 
 ### Promotion Decision Tree
 
 ```
-Is the learning project-specific?
-├── Yes → Keep in .learnings/
-└── No → Is it behavioral/style-related?
-    ├── Yes → Promote to SOUL.md
-    └── No → Is it tool-related?
-        ├── Yes → Promote to TOOLS.md
-        └── No → Promote to AGENTS.md (workflow)
+Is the scoped claim validated and useful beyond the incident?
+├── No → Keep in .learnings/; maintain it even if never promoted
+└── Yes → Is it project-specific?
+    ├── Yes → Promote to that project's agent file with a source link
+    └── No → Is it behavioral/style-related?
+        ├── Yes → SOUL.md, with a source link
+        └── No → TOOLS.md (tools) or AGENTS.md (workflow), with a source link
 ```
 
 ### Promotion Format Examples
@@ -170,6 +174,7 @@ Is the learning project-specific?
 ## Git
 - Don't push without confirming auth is configured
 - Use `gh auth status` to check GitHub CLI auth
+Source: .learnings/ERRORS.md#ERR-20250115-GIT (GitHub CLI workflow only)
 ```
 
 ## Inter-Agent Communication
@@ -247,7 +252,10 @@ sweep**:
    counted by key during triage — see the Pattern-Key Taxonomy in `SKILL.md`.
 4. At the next `agent:bootstrap`, the injected reminder includes a
    **pending triage** note so the agent reviews the auto-detected entries —
-   confirming real errors, filling in fixes, or deleting noise.
+   confirming real errors, filling in fixes, or marking false positives with
+   a reason while preserving the original sweep. Maintenance starts as
+   unknown/pending: classify unrelated claims separately during triage,
+   never from the regex Pattern-Keys. Count only confirmed new occurrences.
 
 ### Enabling / Disabling the Sweep
 
@@ -257,12 +265,17 @@ The sweep is opt-in and gated on the `.learnings/` directory:
 # Enable
 mkdir -p ~/.openclaw/workspace/.learnings
 
-# Disable (reminder injection keeps working)
-rm -r ~/.openclaw/workspace/.learnings
+# Disable the hook without deleting learning history
+openclaw hooks disable self-improvement
 ```
+
+Disabling the hook also stops reminders; manual capture and maintenance still work.
 
 ### Sweep Limitations
 
+- This implementation reads JSONL files only. SQLite transcript compatibility
+  is tracked separately in issue #29; do not rely on the sweep to capture
+  errors from SQLite-backed sessions. Manual logging and maintenance remain available.
 - Sessions that are never ended with `/new` or `/reset` are not swept.
 - Detection happens at session end, not immediately after the failing
   command — there is no per-tool-call event to hook.
@@ -283,9 +296,9 @@ rm -r ~/.openclaw/workspace/.learnings
 
 | Trigger | Action |
 |---------|--------|
-| Tool call error | Log to TOOLS.md with tool name |
-| Session handoff confusion | Log to AGENTS.md with delegation pattern |
-| Model behavior surprise | Log to SOUL.md with expected vs actual |
+| Tool call error | Capture in .learnings/ERRORS.md; validate before promoting to TOOLS.md |
+| Session handoff confusion | Capture in .learnings/; validate before promoting a scoped workflow to AGENTS.md |
+| Model behavior surprise | Capture expected vs actual in .learnings/; review before promoting to SOUL.md |
 | Skill issue | Log to .learnings/ or report upstream |
 
 ## Verification

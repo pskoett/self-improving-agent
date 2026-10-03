@@ -1,6 +1,17 @@
 # Skill Template
 
-Template for creating skills extracted from learnings. Copy and customize.
+Template for creating skills extracted from learnings. Copy and customize only with explicit scoped approval. Age, disuse, recurrence, or a resolved incident alone never authorizes extraction or skill rewrites.
+
+## Extraction Workflow
+
+Candidates may be recurring, non-obvious, broadly applicable, or explicitly user-flagged. These are signals to review, not automatic permission or verification.
+
+1. Review the reusable claim through the skill's Maintenance workflow. Establish scope, usefulness, and actual validation evidence separately from incident resolution.
+2. Obtain explicit approval for the proposed skill creation/modification.
+3. From the workspace, run `~/.openclaw/skills/self-improving-agent/scripts/extract-skill.sh skill-name --dry-run`, then without `--dry-run` after approval; or create manually using a template below.
+4. Fill in the content and source path/ID. Keep the skill self-contained, with a name matching its folder and no project-specific hardcoded values.
+5. Append the promotion date and target section to the original learning; set `Status: promoted_to_skill`, `Skill-Path`, and Maintenance `Guidance`. Preserve resolution, observations, and earlier promotion/review history.
+6. Test examples and read the skill in a fresh session. Later maintenance can propose changes, but editing its assets still requires scoped approval.
 
 ---
 
@@ -60,6 +71,7 @@ Why this knowledge matters. What problems it prevents. Context from the original
 
 Extracted from learning entry.
 - **Learning ID**: LRN-YYYYMMDD-XXX
+- **Original File**: .learnings/LEARNINGS.md (use the actual path back to the source)
 - **Original Category**: correction | insight | knowledge_gap | best_practice
 - **Extraction Date**: YYYY-MM-DD
 ```
@@ -87,6 +99,7 @@ description: "What this skill does and when to use it."
 ## Source
 
 - Learning ID: LRN-YYYYMMDD-XXX
+- Original File: .learnings/LEARNINGS.md (use the actual path back to the source)
 ```
 
 ---
@@ -135,6 +148,7 @@ description: "What this skill does and when to use it."
 ## Source
 
 - Learning ID: LRN-YYYYMMDD-XXX
+- Original File: .learnings/LEARNINGS.md (use the actual path back to the source)
 ```
 
 ---
@@ -161,17 +175,19 @@ description: "What this skill does and when to use it."
 
 Before creating a skill from a learning:
 
-- [ ] Learning is verified (status: resolved)
+- [ ] User explicitly approved this scoped skill creation/modification
+- [ ] Reusable claim has current, scoped validation evidence (not merely status: resolved)
 - [ ] Solution is broadly applicable (not one-off)
 - [ ] Content is complete (has all needed context)
 - [ ] Name follows conventions
 - [ ] Description is concise but informative
 - [ ] Quick Reference table is actionable
 - [ ] Code examples are tested
-- [ ] Source learning ID is recorded
+- [ ] Source learning file and ID are recorded; future maintainers can find the evidence
 
 After creating:
 
 - [ ] Update original learning with `promoted_to_skill` status
 - [ ] Add `Skill-Path: skills/skill-name` to learning metadata
+- [ ] Append dated promotion target/section and Maintenance Guidance, preserving history
 - [ ] Test skill by reading it in a fresh session

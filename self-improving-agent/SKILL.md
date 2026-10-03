@@ -1,6 +1,6 @@
 ---
 name: self-improving-agent
-description: "Captures learnings, errors, and corrections to enable continuous improvement. Use when: (1) A command or operation fails unexpectedly, (2) User corrects Claude ('No, that's wrong...', 'Actually...'), (3) User requests a capability that doesn't exist, (4) An external API or tool fails, (5) Claude realizes its knowledge is outdated or incorrect, (6) A better approach is discovered for a recurring task. Also review learnings before major tasks."
+description: "Captures and maintains learnings, errors, and corrections. Use when a command fails, the user corrects an assumption, a capability is missing, knowledge is outdated, or a better approach is found. Review relevant saved guidance before major tasks, reuse, and promotion; revalidate it according to what could change and how quickly."
 version: "4.0.2"
 metadata:
 ---
@@ -8,6 +8,8 @@ metadata:
 # Self-Improvement Skill
 
 Log learnings and errors to markdown files for continuous improvement. Agents can later process these into fixes, and important learnings get promoted to workspace memory. This version of the skill is built for OpenClaw only — for other agents, see the original multi-agent version at https://github.com/pskoett/pskoett-ai-skills.
+
+Capture, review, reuse, promotion, and maintenance are self-contained here: no companion skill, service, plugin, memory backend, or OpenClaw core change is required. The optional hook only reminds and captures possible errors; it does not enforce this workflow or revalidate claims.
 
 ## First-Use Initialisation
 
@@ -37,7 +39,9 @@ If you want automatic reminders and session-end error detection, enable the opt-
 | Knowledge was outdated | Log to `.learnings/LEARNINGS.md` with category `knowledge_gap` |
 | Found better approach | Log to `.learnings/LEARNINGS.md` with category `best_practice` |
 | Simplify/Harden recurring patterns | Log/update `.learnings/LEARNINGS.md` with `Source: simplify-and-harden` and a stable `Pattern-Key` |
-| Similar to existing entry | Grep by `Pattern-Key` first, link with `**See Also**`, bump `Recurrence-Count` |
+| Similar to existing entry | Search by `Pattern-Key`, confirm the same claim/scope; count only a new occurrence |
+| Reusing or promoting saved knowledge | Review relevant/due claims using Maintenance below, including one-off/unpromoted entries |
+| Source, decision, dependency, or task changes | Revalidate affected claims; do not expire them by age |
 | Workflow improvements | Promote to `AGENTS.md` (workspace) |
 | Tool gotchas | Promote to `TOOLS.md` (workspace) |
 | Behavioral patterns | Promote to `SOUL.md` (workspace) |
@@ -138,112 +142,63 @@ sweep limitations.
 
 ## Logging Format
 
-### Learning Entry
+Append an entry using the templates in [assets/LEARNINGS.md](assets/LEARNINGS.md), [assets/ERRORS.md](assets/ERRORS.md), or [assets/FEATURE_REQUESTS.md](assets/FEATURE_REQUESTS.md). Keep the observation, context, suggested action, and metadata. See [examples](references/examples.md) for completed entries.
 
-Append to `.learnings/LEARNINGS.md`:
+At capture, add the Maintenance block below for each reusable claim. If no inference is established yet, record `Claim: unknown — needs triage` rather than inventing a rule. Legacy entries remain valid log records: initialize metadata only when captured or touched in relevant review, without bulk migration.
 
-```markdown
-## [LRN-YYYYMMDD-XXX] category
+## Maintenance: Cause-Aware Context Decay
 
-**Logged**: ISO-8601 timestamp
-**Priority**: low | medium | high | critical
-**Status**: pending
-**Area**: frontend | backend | infra | tests | docs | config
+Historical observations do not expire. Maintain the reusable inference or instruction, not whether the incident happened. This applies to all three `.learnings/` files, including one-off and unpromoted entries. Truth and usefulness are separate: a true fact may be irrelevant to this task; a useful workaround may no longer be correct.
 
-### Summary
-One-line description of what was learned
+### Type determines HOW to revalidate
 
-### Details
-Full context: what happened, what was wrong, what's correct
+| Type | Check |
+|------|-------|
+| `reality` | Read the current authoritative source or inspect the current environment for the scoped fact. |
+| `decision` | Find an authoritative, applicable superseding decision; confirm its scope and effective state. Age or a different team's choice does not supersede it. |
+| `dependency` | Establish the relevant version/configuration, then perform representative behavioral verification in that environment. An upgrade triggers a check, not automatic retirement. |
+| `relevance` | Assess applicability and usefulness for the current task/project. Disuse does not prove falsehood. |
 
-### Suggested Action
-Specific fix or improvement to make
+Use `unknown` when the cause is not established. If a claim has multiple causes, check each or split distinct claims into named Maintenance blocks. Do not infer semantic type/rate from priority, status, recurrence, or `Pattern-Key` regex matches. Session sweeps may mix unrelated errors: classify claims during triage, preserving and linking the original sweep.
 
-### Metadata
-- Source: conversation | error | user_feedback
-- Related Files: path/to/file.ext
-- Tags: tag1, tag2
-- See Also: LRN-20250110-001 (if related to existing entry)
-- Pattern-Key: area.symptom (recommended; e.g. deps.module-not-found, simplify.dead_code — see Pattern-Key Taxonomy)
-- Recurrence-Count: 1 (optional)
-- First-Seen: 2025-01-15 (optional)
-- Last-Seen: 2025-01-15 (optional)
+### Rate determines WHEN to review
 
----
-```
+- `fast`: volatile; check near each relevant use.
+- `medium`: revisit at relevant task/project milestones during active work.
+- `slow`: stable; review occasionally at relevant major changes or milestones.
+- `durable`: expected to persist; review when authority, assumptions, or applicability is challenged.
+- `unknown`: no supported cadence yet; triage before relying on it.
 
-### Error Entry
+These are qualitative rates, not universal half-lives, expiry dates, or deletion rules. Record a concrete trigger for the claim. Relevant events (source updates, superseding decisions, dependency/configuration changes, project/task shifts, contradictions) override cadence, even for `durable` claims. No scheduler or autonomous background revalidation is needed.
 
-Append to `.learnings/ERRORS.md`:
+### Lightweight metadata beside the original entry
 
 ```markdown
-## [ERR-YYYYMMDD-XXX] skill_or_command_name
-
-**Logged**: ISO-8601 timestamp
-**Priority**: high
-**Status**: pending
-**Area**: frontend | backend | infra | tests | docs | config
-
-### Summary
-Brief description of what failed
-
-### Error
-```
-Actual error message or output
+### Maintenance
+- Claim: reusable inference/instruction, or unknown — needs triage
+- Scope: applicable project/task/environment and limits, or unknown
+- Authority: source path/section, decision ID, environment, or unknown
+- Decay: reality | decision | dependency | relevance | unknown / fast | medium | slow | durable | unknown
+- Revalidate: event/cadence; specific check to perform
+- Validation: pending | verified | unresolved | contradicted
+- Evidence: none yet; when checked, actual date, source/version/configuration, check and result (including failures/conflicts)
+- Disposition: retain | revise | externalize | retire; reason and task applicability
+- Guidance: none, or target file + section and source-learning ID
 ```
 
-### Context
-- Command/operation attempted
-- Input or parameters used
-- Environment details if relevant
-- Summary or redacted excerpt of relevant output (avoid full transcripts and secret-bearing data by default)
+Start with `Validation: pending`, `Evidence: none yet`, and `Disposition: retain — provisional, not validated` unless actual evidence supports more. An attempted review is not validation: unavailable or conflicting evidence stays `unresolved`, with the attempt date, blocker, and next check; do not advance a successful validation date. Keep past evidence dated and scoped when appending later results. `Status` tracks issue resolution/promotion, `Validation` tracks support for the claim, and `Disposition` tracks active guidance; none implies the others.
 
-### Suggested Fix
-If identifiable, what might resolve this
+### Review, reuse, and promotion loop
 
-### Metadata
-- Reproducible: yes | no | unknown
-- Related Files: path/to/file.ext
-- See Also: ERR-20250110-001 (if recurring)
-- Pattern-Key: area.symptom (recommended; e.g. net.connection-refused — see Pattern-Key Taxonomy)
-- Recurrence-Count: 1 (optional)
-- First-Seen: 2025-01-15 (optional)
-- Last-Seen: 2025-01-15 (optional)
+1. **Select** entries relevant to the current task by area, files, keywords, or source IDs, plus affected/due claims at natural breakpoints. Do not audit the whole log every turn or select only pending/promoted/repeated entries.
+2. **Triage** legacy/mixed entries: identify the reusable claim, scope, authority, type/rate, and trigger. Keep unknowns explicit. A resolved incident, successful recovery, or repeated occurrence does not prove a universally valid rule.
+3. **Check** applicability and whether the trigger fired or evidence is due before reuse or promotion. Run the type-appropriate check when needed; record actual evidence, not an intended command. If evidence is missing/conflicting, do not present or promote the claim as verified. State uncertainty and seek the source or use an appropriately scoped fallback; do not remove safeguards while blocked.
+4. **Choose** `retain` (supported and useful, or explicitly provisional while blocked), `revise` (correct/narrow with evidence), `externalize` (replace volatile detail with a usable retrieval instruction), or `retire` (exclude from active guidance with an evidenced reason). Externalization names where to look, what to read/test, and what to do if inaccessible/conflicting; a vague “check docs” is insufficient. Verify that the retrieval path is usable before treating it as validated.
+5. **Record and propagate**: append a dated review note with the outcome, reason, evidence, and old → new claim when changed. Preserve original observations, resolution, promotion targets/dates, and prior reviews. Update affected promoted guidance using its source link; keep its source-learning ID beside the revised rule (or a retirement note pointing to the preserved history). Never inflate `Recurrence-Count`/`Last-Seen` just because a review ran.
 
----
-```
+Never erase learning/promotion history or delete by age. Never change user preferences, weaken security policies, or rewrite skill assets merely because they are old or unused. Skill creation/modification requires explicit scoped approval; approval for this integration does not authorize future skill rewrites. If a needed target edit is outside granted scope, record the proposed change as pending in the source entry and report the still-active guidance rather than silently claiming it is updated.
 
-### Feature Request Entry
-
-Append to `.learnings/FEATURE_REQUESTS.md`:
-
-```markdown
-## [FEAT-YYYYMMDD-XXX] capability_name
-
-**Logged**: ISO-8601 timestamp
-**Priority**: medium
-**Status**: pending
-**Area**: frontend | backend | infra | tests | docs | config
-
-### Requested Capability
-What the user wanted to do
-
-### User Context
-Why they needed it, what problem they're solving
-
-### Complexity Estimate
-simple | medium | complex
-
-### Suggested Implementation
-How this could be built, what it might extend
-
-### Metadata
-- Frequency: first_time | recurring
-- Related Features: existing_feature_name
-- Pattern-Key: area.symptom (optional — features usually dedupe by capability name; use a key only for recurring themes, e.g. api.missing-endpoint)
-
----
-```
+For worked review outcomes and provenance, read [maintenance examples](references/examples.md#maintenance-examples).
 
 ## ID Generation
 
@@ -273,6 +228,8 @@ Other status values:
 - `wont_fix` - Decided not to address (add reason in Resolution notes)
 - `promoted` - Elevated to a workspace file (`SOUL.md`, `TOOLS.md`, `AGENTS.md`)
 
+Keep the Resolution block when promoting. A working fix establishes what happened in that incident; validate any reusable rule separately through Maintenance.
+
 ## Promoting to Workspace Memory
 
 When a learning is broadly applicable (not a one-off fix), promote it to a workspace file so every session inherits it.
@@ -298,11 +255,9 @@ instead.
 
 ### How to Promote
 
-1. **Distill** the learning into a concise rule or fact
-2. **Add** to appropriate section in target file (create file if needed)
-3. **Update** original entry:
-   - Change `**Status**: pending` → `**Status**: promoted`
-   - Add `**Promoted**: SOUL.md`, `TOOLS.md`, or `AGENTS.md`
+1. **Review** the scoped claim through Maintenance first. Promote only supported, useful guidance, not unresolved assumptions or recurrence alone.
+2. **Distill and add** a concise scoped rule or usable retrieval instruction to the appropriate target. Include `Source: .learnings/<file>.md#<entry-ID>` beside it (use the actual relative path from the target; the ID is searchable even if the renderer's anchor differs).
+3. **Update** the original entry: set `**Status**: promoted`, append the promotion date and target file/section, and set `Guidance` to that location. Preserve any resolution and earlier promotion history. Future revisions follow this two-way link.
 
 ### Promotion Examples
 
@@ -310,10 +265,10 @@ instead.
 > Project uses pnpm workspaces. Attempted `npm install` but failed. 
 > Lock file is `pnpm-lock.yaml`. Must use `pnpm install`.
 
-**In TOOLS.md** (concise):
+**In TOOLS.md** (externalized after checking the retrieval path):
 ```markdown
 ## Build & Dependencies
-- Package manager: pnpm (not npm) - use `pnpm install`
+- Before installing, read this repo's `package.json` `packageManager` field and lockfile. Use the declared manager; if missing or conflicting, consult the build instructions/maintainer before installing. Source: .learnings/LEARNINGS.md#LRN-20250115-002
 ```
 
 **Learning** (verbose):
@@ -325,6 +280,7 @@ instead.
 ## After API Changes
 1. Regenerate client: `pnpm run generate:api`
 2. Check for type errors: `pnpm tsc --noEmit`
+Source: .learnings/LEARNINGS.md#LRN-20250116-001 (scope: this repo's current generator/configuration)
 ```
 
 ## Pattern-Key Taxonomy
@@ -357,7 +313,7 @@ file names, versions, or hostnames in keys.
 1. **Reuse before minting**: `grep -rh "Pattern-Key:" .learnings/ | sort -u` —
    a near-match beats a new key.
 2. **One key per manual entry**; auto-swept OpenClaw entries may carry
-   several — reduce to one when triaging.
+   several — triage unrelated claims separately and link to the preserved sweep.
 3. **Mint new areas sparingly** — only when several entries would share one.
 4. **Generic sweep keys** (`runtime.error`, `runtime.failure`) mean
    "unclassified" — replace with a specific key during triage.
@@ -371,9 +327,9 @@ If logging something similar to an existing entry:
    search misses
 2. **Fallback keyword search**: `grep -ri "keyword" .learnings/` for entries
    logged without a key
-3. **Fold, don't duplicate**: on a hit, update the existing entry — bump
-   `Recurrence-Count`, set `Last-Seen`, add `**See Also**` — instead of
-   creating a new one
+3. **Fold, don't duplicate**: confirm the same claim and scope, not just a key
+   match. For a genuinely new occurrence, bump `Recurrence-Count`, set
+   `Last-Seen`, and link the evidence; review/re-reading is not recurrence
 4. **Bump priority** if issue keeps recurring
 5. **Consider systemic fix**: Recurring issues often indicate:
    - Missing knowledge (→ promote to `TOOLS.md` or `SOUL.md`)
@@ -382,8 +338,8 @@ If logging something similar to an existing entry:
 
 ## Simplify & Harden Feed
 
-Use this workflow to ingest recurring patterns from the `simplify-and-harden`
-skill and turn them into durable prompt guidance.
+If a task supplies simplify/harden candidates, ingest them here; no other skill
+is required. Manual capture uses the same recurrence and maintenance rules.
 
 ### Ingestion Workflow
 
@@ -392,8 +348,7 @@ skill and turn them into durable prompt guidance.
 3. Search `.learnings/LEARNINGS.md` for an existing entry with that key:
    - `grep -n "Pattern-Key: <pattern_key>" .learnings/LEARNINGS.md`
 4. If found:
-   - Increment `Recurrence-Count`
-   - Update `Last-Seen`
+   - Increment `Recurrence-Count` and update `Last-Seen` only for a new occurrence of the same scoped claim
    - Add `See Also` links to related entries/tasks
 5. If not found:
    - Create a new `LRN-...` entry
@@ -402,11 +357,13 @@ skill and turn them into durable prompt guidance.
 
 ### Promotion Rule (System Prompt Feedback)
 
-Promote recurring patterns into agent context/system prompt files when all are true:
+Consider recurring patterns for promotion when all are true:
 
 - `Recurrence-Count >= 3`
 - Seen across at least 2 distinct tasks
 - Occurred within a 30-day window
+
+These are candidate signals, not proof or expiry rules. Apply Maintenance before promotion; one-off learnings still receive maintenance without meeting these thresholds.
 
 Promotion targets: `SOUL.md`, `TOOLS.md`, or `AGENTS.md` (workspace), or the
 project's own agent file when the pattern is project-specific.
@@ -416,7 +373,7 @@ not long incident write-ups.
 
 ## Periodic Review
 
-Review `.learnings/` at natural breakpoints:
+Review relevant/due claims using Maintenance at natural breakpoints; not the entire log every turn:
 
 ### When to Review
 - Before starting a new major task
@@ -438,7 +395,9 @@ grep -l "Area\*\*: backend" .learnings/*.md
 
 ### Review Actions
 - Resolve fixed items
-- Promote applicable learnings
+- Revalidate relevant/due claims of any status, including one-off/unpromoted learnings
+- Retain, revise, externalize, or retire active guidance while preserving history
+- Promote supported, applicable learnings with source links
 - Link related entries
 - Escalate recurring issues
 
@@ -499,8 +458,8 @@ Use to filter learnings by codebase region:
 4. **Link related files** - makes fixes easier
 5. **Suggest concrete fixes** - not just "investigate"
 6. **Use consistent categories** - enables filtering
-7. **Promote aggressively** - if in doubt, add to `TOOLS.md` or `SOUL.md`
-8. **Review regularly** - stale learnings lose value
+7. **Promote supported guidance** - validate scope and usefulness first; preserve provenance
+8. **Review by cause and rate** - age alone proves neither falsehood nor uselessness
 
 ## Gitignore Options
 
@@ -528,67 +487,8 @@ To disable or remove the skill, follow `references/uninstall.md`:
 `.learnings/` is user data (review before deleting), and content promoted to
 `SOUL.md`/`TOOLS.md`/`AGENTS.md` stays until removed manually.
 
-## Automatic Skill Extraction
+## Skill Extraction (Approval Required)
 
-When a learning is valuable enough to become a reusable skill, extract it using the provided helper.
+When a learning may justify a reusable skill, use [assets/SKILL-TEMPLATE.md](assets/SKILL-TEMPLATE.md). Extracting is optional, never a dependency of maintenance. Obtain explicit scoped approval before creating or modifying skill assets.
 
-### Skill Extraction Criteria
-
-A learning qualifies for skill extraction when ANY of these apply:
-
-| Criterion | Description |
-|-----------|-------------|
-| **Recurring** | Has `See Also` links to 2+ similar issues |
-| **Verified** | Status is `resolved` with working fix |
-| **Non-obvious** | Required actual debugging/investigation to discover |
-| **Broadly applicable** | Not project-specific; useful across codebases |
-| **User-flagged** | User says "save this as a skill" or similar |
-
-### Extraction Workflow
-
-1. **Identify candidate**: Learning meets extraction criteria
-2. **Run helper** (or create manually):
-   ```bash
-   ~/.openclaw/skills/self-improving-agent/scripts/extract-skill.sh skill-name --dry-run
-   ~/.openclaw/skills/self-improving-agent/scripts/extract-skill.sh skill-name
-   ```
-3. **Customize SKILL.md**: Fill in template with learning content
-4. **Update learning**: Set status to `promoted_to_skill`, add `Skill-Path`
-5. **Verify**: Read skill in fresh session to ensure it's self-contained
-
-### Manual Extraction
-
-If you prefer manual creation:
-
-1. Create `skills/<skill-name>/SKILL.md`
-2. Use template from `assets/SKILL-TEMPLATE.md`
-3. Follow [Agent Skills spec](https://agentskills.io/specification):
-   - YAML frontmatter with `name` and `description`
-   - Name must match folder name
-   - No README.md inside skill folder
-
-### Extraction Detection Triggers
-
-Watch for these signals that a learning should become a skill:
-
-**In conversation:**
-- "Save this as a skill"
-- "I keep running into this"
-- "This would be useful for other projects"
-- "Remember this pattern"
-
-**In learning entries:**
-- Multiple `See Also` links (recurring issue)
-- High priority + resolved status
-- Category: `best_practice` with broad applicability
-- User feedback praising the solution
-
-### Skill Quality Gates
-
-Before extraction, verify:
-
-- [ ] Solution is tested and working
-- [ ] Description is clear without original context
-- [ ] Code examples are self-contained
-- [ ] No project-specific hardcoded values
-- [ ] Follows skill naming conventions (lowercase, hyphens)
+The template includes candidate criteria, helper commands, quality gates, and two-way provenance. Review the scoped claim before extraction; a resolved incident or recurrence alone is not verification. Later asset changes require their own scoped approval.

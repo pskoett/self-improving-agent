@@ -19,6 +19,9 @@ error sweep instead.
 
 - Adds a reminder block to check `.learnings/` for relevant entries
 - Prompts the agent to log corrections, errors, and discoveries
+- Reminds the agent to maintain relevant/due claims before reuse/promotion,
+  using cause-specific checks and actual dated evidence (including one-off
+  and unpromoted learnings); it does not perform or enforce revalidation
 - If auto-detected errors are awaiting triage, includes a pending-triage note
 
 **On `command:new` / `command:reset`** (session end):
@@ -34,11 +37,18 @@ error sweep instead.
   matched pattern (e.g. `deps.module-not-found`, `shell.command-not-found`),
   so auto-detected errors can be deduplicated and recurrence-counted by key
   (see the Pattern-Key Taxonomy in `SKILL.md`)
+- Initializes Maintenance as unknown/pending; regex matches cannot classify
+  unrelated claims or validate fixes. Triage preserves the original sweep
+  and counts only confirmed new occurrences, never reviews.
+
+Capture and maintenance work without this hook or any companion skill.
+The sweep currently reads JSONL only; SQLite compatibility (issue #29) is
+separate from the maintenance workflow.
 
 ## Opt-In and Safety
 
-- The sweep only runs when `<workspace>/.learnings/` exists — create that
-  directory to enable it, delete it to disable it
+- The sweep only runs when `<workspace>/.learnings/` exists. Disable the
+  hook with `openclaw hooks disable self-improvement`, not by deleting history
 - `ERRORS.md` is created only if missing and is otherwise appended to, never
   overwritten
 - Excerpts are truncated to 200 characters and common secret shapes (bearer
