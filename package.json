@@ -1,0 +1,13 @@
+{
+  "name": "self-improving-agent-dev",
+  "private": true,
+  "scripts": {
+    "test": "node --test self-improving-agent/hooks/openclaw/handler.test.js",
+    "typecheck": "tsc --noEmit --strict --skipLibCheck --module nodenext --moduleResolution nodenext --target es2022 self-improving-agent/hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts",
+    "check:shell": "bash -n self-improving-agent/scripts/extract-skill.sh && bash -n .agents/setup && bash -n .agents/resume"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

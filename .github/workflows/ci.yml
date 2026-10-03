@@ -13,17 +13,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
+
+      - name: Install development dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Unit tests (OpenClaw hook)
-        run: node --test self-improving-agent/hooks/openclaw/handler.test.js
+        run: npm test
 
       - name: Type-check handler.ts
-        run: |
-          npm install --no-save --no-package-lock --no-audit --no-fund typescript@5 @types/node
-          npx --no-install tsc --noEmit --strict --skipLibCheck \
-            --module nodenext --moduleResolution nodenext --target es2022 \
-            self-improving-agent/hooks/openclaw/handler.ts .github/tscheck/openclaw-hooks-stub.d.ts
+        run: npm run typecheck
 
       - name: Run the same tests against compiled TypeScript
         run: |
@@ -36,4 +35,4 @@ jobs:
           node --test "$tmp/handler.test.js"
 
       - name: Shell syntax check
-        run: bash -n self-improving-agent/scripts/extract-skill.sh
+        run: npm run check:shell

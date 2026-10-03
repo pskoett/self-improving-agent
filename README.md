@@ -17,6 +17,27 @@ outside the package on purpose.
 - Skill entry point: [`self-improving-agent/SKILL.md`](self-improving-agent/SKILL.md)
 - OpenClaw hook: [`self-improving-agent/hooks/openclaw/`](self-improving-agent/hooks/openclaw/)
 
+## Development and Amp orbs
+
+Use the Node.js version in `.nvmrc`, then run:
+
+```bash
+npm ci
+npm test
+npm run typecheck
+npm run check:shell
+```
+
+The root npm manifest and lockfile are development-only; the publishable skill
+subfolder remains dependency-free. Tests use an OpenClaw type stub, so no
+OpenClaw installation, credentials, or backing services are required.
+
+Amp runs `.agents/setup` to install the pinned Node.js toolchain and locked
+development dependencies before taking an orb snapshot. Warm setup runs reuse
+installed dependencies. A repository-scoped login-shell hook selects this Node
+version without replacing the orb's system Node. `.agents/resume` intentionally
+does no installation because there is no per-wake repair or authentication work.
+
 ## Installation
 
 With OpenClaw's built-in skill installer — this installs into the active

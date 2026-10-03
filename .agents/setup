@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+TIMEFORMAT='  completed in %3R seconds'
+
+# Match CI without replacing the orb's system Node or installing OpenClaw.
+node_version="$(cat .nvmrc)"
+case "$(uname -m)" in
+  x86_64) node_arch=x64 ;;
+  aarch64) node_arch=arm64 ;;
+  *) echo 'Unsupported Node.js architecture' >&2; exit 1 ;;
+esac
+node_dist="node-v${node_version}-linux-${node_arch}"
+toolchain_root="$HOME/.local/share/self-improving-agent"
+node_home="$toolchain_root/$node_dist"
+
+echo "Preparing Node.js $node_version"
+time {
+  if [[ ! -x "$node_home/bin/node" ]]; then
+    download_dir="$(mktemp -d)"
+    trap 'rm -rf -- "$download_dir"' EXIT
+    curl --fail --silent --show-error --location --retry 3 \
+      "https://nodejs.org/dist/v${node_version}/${node_dist}.tar.xz" \
+      -o "$download_dir/${node_dist}.tar.xz"
+    curl --fail --silent --show-error --location --retry 3 \
+      "https://nodejs.org/dist/v${node_version}/SHASUMS256.txt" \
+      -o "$download_dir/SHASUMS256.txt"
+    (cd "$download_dir"; grep " ${node_dist}.tar.xz$" SHASUMS256.txt | sha256sum --check -)
+    mkdir -p "$toolchain_root"
+    tar -xJf "$download_dir/${node_dist}.tar.xz" -C "$download_dir"
+    mv "$download_dir/$node_dist" "$node_home"
+  fi
+}
+export PATH="$node_home/bin:$PATH"
+
+# Future agent and service login shells must see the same Node installation.
+# Keep activation scoped to this checkout, including its subdirectories.
+profile_marker='# self-improving-agent orb toolchain'
+if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
+  cat >> "$HOME/.bash_profile" <<EOF
+
+$profile_marker
+if [[ "\$PWD" == "$repo_root" || "\$PWD" == "$repo_root/"* ]]; then
+  export PATH="$toolchain_root/node-v\$(cat "$repo_root/.nvmrc")-linux-$node_arch/bin:\$PATH"
+fi
+EOF
+fi
+
+echo "Installing locked development dependencies ($(node --version), npm $(npm --version))"
+# Unlike npm ci, install preserves already-correct dependencies on stale snapshots.
+time npm install --include=dev --ignore-scripts --prefer-offline --no-audit --no-fund
+echo 'Orb setup ready. Run npm test, npm run typecheck, and npm run check:shell.'

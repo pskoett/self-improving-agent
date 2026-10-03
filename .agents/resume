@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# No credentials, services, or other per-wake repairs are needed by this repo.
+# Toolchains and dependencies persist in the snapshot; never reinstall here.
