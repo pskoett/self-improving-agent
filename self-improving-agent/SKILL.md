@@ -1,7 +1,7 @@
 ---
 name: self-improving-agent
 description: "Captures and maintains learnings, errors, and corrections. Use when a command fails, the user corrects an assumption, a capability is missing, knowledge is outdated, or a better approach is found. Review relevant saved guidance before major tasks, reuse, and promotion; revalidate it according to what could change and how quickly."
-version: "4.0.4"
+version: "4.0.5"
 metadata:
 ---
 
@@ -405,7 +405,9 @@ grep -l "Area\*\*: backend" .learnings/*.md
 
 ## Detection Triggers
 
-Automatically log when you notice:
+Evaluate the event in context before logging. The phrases below are cues,
+not automatic logging commands; ordinary questions and follow-up tasks alone
+do not justify persistent entries.
 
 **Corrections** (→ learning with `correction` category):
 - "No, that's not right..."
@@ -414,10 +416,9 @@ Automatically log when you notice:
 - "That's outdated..."
 
 **Feature Requests** (→ feature request):
-- "Can you also..."
-- "I wish you could..."
-- "Is there a way to..."
-- "Why can't you..."
+- Log only a requested capability shown to be missing from the relevant tool/version. Record evidence and limits.
+- "Can you also..." or "Is there a way to..." is not evidence of a missing feature. Use existing capabilities normally; do not log ordinary follow-ups.
+- If availability is unclear, check documentation or tool behavior, or ask. Do not create a feature request based on wording alone.
 
 **Knowledge Gaps** (→ learning with `knowledge_gap` category):
 - User provides information you didn't know
@@ -486,8 +487,9 @@ Don't add to .gitignore - learnings become shared knowledge.
 Read `CHANGELOG.md` before upgrading — it carries per-version notes, and
 hook changes require re-copying the hook and restarting the gateway.
 To disable or remove the skill, follow `references/uninstall.md`:
-`.learnings/` is user data (review before deleting), and content promoted to
-`SOUL.md`/`TOOLS.md`/`AGENTS.md` stays until removed manually.
+disabling and uninstalling preserve `.learnings/` and promoted workspace rules.
+Permanent data deletion or edits to promoted guidance require separate,
+explicit authorization; they are not part of uninstalling.
 
 ## Skill Extraction (Approval Required)
 

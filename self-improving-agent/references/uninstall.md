@@ -1,55 +1,87 @@
 # Uninstall Guide
 
-How to disable or fully remove the self-improvement skill. **Disabling** turns
-off automatic behavior but keeps your data; **removing** deletes the skill's
-files. They are different operations — do the one you mean.
+Disabling the hook stops its reminders and error sweeps. Removing the skill
+also stops its instructions from loading in new sessions. Both procedures
+below preserve learning history and promoted workspace guidance.
 
 > **Your learnings are data, not skill machinery.** `.learnings/` contains the
-> errors, corrections, and insights the skill captured for you. Review or
-> archive it before deleting anything. Content the skill *promoted* into
-> `SOUL.md`, `TOOLS.md`, or `AGENTS.md` is part of those files now — removing
-> the skill does not (and should not) automatically remove it.
+> errors, corrections, and insights captured for you. Neither disabling nor
+> uninstalling authorizes deleting it. Promoted content in `SOUL.md`,
+> `TOOLS.md`, or `AGENTS.md` also remains; review it separately with the user.
 
-## Disable only
+## Disable the hook, keep the skill and data
 
 ```bash
 # Stop the hook (reminder injection + session-end error sweep)
 openclaw hooks disable self-improvement
 ```
 
-To keep the bootstrap reminder but disable only the error sweep, remove the
-learnings directory instead (archive it first if it has entries):
+Restart the gateway using your usual service manager. The hook may still
+appear in `openclaw hooks list`; use `openclaw hooks info self-improvement --json`
+to confirm it is disabled. A fresh session should not receive the injected
+`SELF_IMPROVEMENT_REMINDER.md`.
 
+There is no separate reminder-only switch. Do not delete or move `.learnings/`
+to disable the sweep: that removes accessible history, and first-use
+initialisation can recreate the directory. Disable the whole hook instead.
+The installed skill can still be invoked for manual capture and maintenance.
+
+## Remove the skill and hook from discovery, keep the data
+
+1. Identify the selected installation paths before moving anything:
 ```bash
-rm -r ~/.openclaw/workspace/.learnings
+openclaw skills info self-improving-agent --json
+openclaw hooks info self-improvement --json
 ```
-
-Restart the gateway after hook changes.
-
-## Remove completely
-
+   Use their `baseDir`/`handlerPath`, not assumed `~/.openclaw/` paths. Add
+   `--agent <id>` when selecting another agent. If the optional hook was
+   never installed, skip its disable and move steps.
+2. Disable the installed hook as above, then stop the gateway using your
+   usual service manager. Pause other agents using the same workspace.
+3. Choose a new backup directory outside **all** skill and hook discovery
+   roots. Confirm the selected directories contain this skill/hook, not a
+   workspace or shared parent. If they are symlinks, resolve their ownership
+   and target with the user before proceeding. Do not move another install.
+4. Move the selected directories into the backup. Substitute the verified
+   absolute paths below; omit the hook line if it was never installed:
 ```bash
-# 1. Disable and remove the hook
-openclaw hooks disable self-improvement
-rm -r ~/.openclaw/hooks/self-improvement
+SKILL_DIR='/absolute/path/to/selected/self-improving-agent'
+HOOK_DIR='/absolute/path/to/selected/hooks/self-improvement'
+BACKUP_DIR='/absolute/path/outside/discovery/self-improvement-backup'
 
-# 2. Remove the skill
-rm -r ~/.openclaw/skills/self-improving-agent
-
-# 3. Optional — remove captured learnings (REVIEW FIRST, this is your data)
-rm -r ~/.openclaw/workspace/.learnings
+(
+  set -e
+  mkdir -- "$BACKUP_DIR"
+  mv -i -- "$SKILL_DIR" "$BACKUP_DIR/skill"
+  mv -i -- "$HOOK_DIR" "$BACKUP_DIR/hook"
+)
 ```
+   `mkdir` must succeed on a new directory; an existing destination stops
+   the sequence. Check each move succeeded before restarting. Skill-local
+   `.learnings/`, if present, stays intact inside the archived skill.
+5. Start the gateway and open a fresh session. Verify the selected skill/hook
+   is no longer discovered and the reminder is absent. Other installations
+   may become active after removal; inspect any remaining result before
+   deciding whether the user also wants that copy removed.
 
-Then restart the gateway and verify with `openclaw hooks list` and
-`openclaw status`.
+Workspace and project `.learnings/` directories stay at their original paths.
+Do not rewrite or remove promoted rules as part of uninstalling. Existing
+conversations may retain previously loaded instructions; removal affects
+future loading, not transcript history.
 
-Manually review `SOUL.md`, `TOOLS.md`, and `AGENTS.md` in
-`~/.openclaw/workspace/` for sections promoted by this skill and delete the
-ones you no longer want. If the skill logged `.learnings/` directories into
-project repos you worked in, review and remove those separately.
+## Optional permanent data deletion is a separate decision
+
+Only delete captured history if the user explicitly requests deletion of the
+identified data, separately from disabling or uninstalling. Confirm the exact
+directory and scope, make a backup outside discovery roots, and verify that
+the backup preserves the files before proposing a path-specific deletion.
+If the backup cannot be verified, stop. Do not infer consent from age, disuse,
+or an uninstall request. Edits to promoted guidance need their own scoped
+review and authorization; preserve source history and links.
 
 ## Verification
 
-- `openclaw hooks list` no longer shows `self-improvement`
-- New sessions no longer contain `SELF_IMPROVEMENT_REMINDER.md`
-- No stray `.learnings/` directories remain that you didn't choose to keep
+- After disabling: the hook is disabled and fresh sessions have no injected reminder.
+- After removal: the selected skill/hook paths are outside discovery; check for other active copies.
+- Saved learning files and promoted workspace guidance match their pre-operation contents.
+- Archived files remain available for inspection or restoration; no user history was deleted.
