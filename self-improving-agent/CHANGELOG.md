@@ -33,8 +33,7 @@ Read this before upgrading. General upgrade rules:
 
 Skill instructions and documentation only; hook code is unchanged from 4.0.4.
 Update the installed skill and use a fresh session. No hook replacement or
-learning-data migration is needed for this release. A new ClawHub security
-verdict is not established until the published 4.0.5 package is audited.
+learning-data migration is needed for this release.
 
 ## [4.0.4] - 2026-10-22
 
