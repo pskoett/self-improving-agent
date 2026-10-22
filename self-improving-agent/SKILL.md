@@ -1,7 +1,7 @@
 ---
 name: self-improving-agent
 description: "Captures and maintains learnings, errors, and corrections. Use when a command fails, the user corrects an assumption, a capability is missing, knowledge is outdated, or a better approach is found. Review relevant saved guidance before major tasks, reuse, and promotion; revalidate it according to what could change and how quickly."
-version: "4.0.2"
+version: "4.0.3"
 metadata:
 ---
 
@@ -125,20 +125,19 @@ Use these only in trusted environments and only when the user explicitly wants c
 
 ### Optional: Enable Hook
 
-For automatic reminders at session start and error detection at session end:
-
-```bash
-cp -r ~/.openclaw/skills/self-improving-agent/hooks/openclaw ~/.openclaw/hooks/self-improvement
-openclaw hooks enable self-improvement
-```
+For automatic reminders at session start and error detection at session end,
+follow [Install or Upgrade the Hook](references/openclaw-integration.md#install-or-upgrade-the-hook),
+then enable with `openclaw hooks enable self-improvement`. Select the actual
+skill/hook paths, review local patches, and preserve the old copy before replacing it.
 
 Fires on `agent:bootstrap` (injects the reminder, plus a pending-triage note
 when auto-detected errors await review) and on `command:new`/`command:reset`
 (sweeps the ended session's transcript for error patterns into
 `<workspace>/.learnings/ERRORS.md`; opt-in — runs only when `.learnings/`
-exists). OpenClaw has no per-tool-call hook event, so error detection happens
-at session end. See `references/openclaw-integration.md` for details and
-sweep limitations.
+exists). Internal `HOOK.md` events have no per-tool-call callback, so this
+integration detects errors at session end. OpenClaw's typed plugin hooks
+separately expose `after_tool_call`. See
+[hook systems and limitations](references/openclaw-integration.md#internal-hook-events).
 
 ## Logging Format
 
@@ -199,6 +198,9 @@ Start with `Validation: pending`, `Evidence: none yet`, and `Disposition: retain
 Never erase learning/promotion history or delete by age. Never change user preferences, weaken security policies, or rewrite skill assets merely because they are old or unused. Skill creation/modification requires explicit scoped approval; approval for this integration does not authorize future skill rewrites. If a needed target edit is outside granted scope, record the proposed change as pending in the source entry and report the still-active guidance rather than silently claiming it is updated.
 
 For worked review outcomes and provenance, read [maintenance examples](references/examples.md#maintenance-examples).
+To evaluate the maintenance instructions, use the isolated scenarios in
+[maintenance behavioral evaluations](references/maintenance-evals.md).
+These are evaluation fixtures, not checks to run during ordinary learning capture.
 
 ## ID Generation
 

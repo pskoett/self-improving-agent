@@ -7,15 +7,40 @@ agent or user must do when upgrading. Format follows
 
 Read this before upgrading. General upgrade rules:
 
-- **OpenClaw hook changes only take effect after re-copying and restarting.**
-  The hook runs from a copy: re-run
-  `cp -r ~/.openclaw/skills/self-improving-agent/hooks/openclaw ~/.openclaw/hooks/self-improvement`
-  and restart the gateway after upgrading.
+- **OpenClaw hook changes require replacing the active copy and restarting.**
+  Follow [Install or Upgrade the Hook](references/openclaw-integration.md#install-or-upgrade-the-hook):
+  discover the selected paths, diff and merge local patches, and preserve the
+  old hook outside discovery directories before replacement. Repeating the
+  old `cp -r` command can nest `openclaw/` instead of updating the handler.
 - `.learnings/` files are user data and are never migrated or overwritten by
   upgrades; first-use initialisation is idempotent and only creates missing
   files.
 
 ## [Unreleased]
+
+### Fixed
+
+- SQLite session-end capture (#29), including compressed transcript events,
+  through the running OpenClaw host's bounded transcript reader. Tested on
+  OpenClaw 2026.10.4; this private runtime API needs revalidation on upgrades.
+  JSONL remains supported. Scans are capped at 2,000 events/8 MiB, with at
+  most 16 runtime pages; late errors in long sessions can be missed.
+- Hook install/upgrade instructions (#32) now select actual install paths,
+  stage and review changes, preserve local patches and backups outside
+  discovery roots, and replace without nesting directories.
+- Hook documentation and generated entries (#31) distinguish internal
+  `HOOK.md` events from typed plugins, which expose `after_tool_call`.
+- Repository release metadata (#33) now records the published 4.0.3 release;
+  SKILL.md links the maintenance evaluation scenarios. These new fixes remain
+  unreleased and do not change the existing ClawHub 4.0.3 archive.
+
+## [4.0.3] - 2026-10-04
+
+ClawHub published this release with `version: "4.0.2"` in SKILL.md and the
+maintenance notes still under `[Unreleased]`. The registry's 4.0.3 file
+hashes match those maintenance files. This heading corrects the release
+record; it does not imply the published archive has been replaced. Publish
+the fixes above under a new version, not by reusing 4.0.3.
 
 ### Added
 
@@ -99,7 +124,7 @@ action needed beyond reinstalling if you want the corrected install docs.
   `TOOLS.md`, `AGENTS.md`), with the project's own agent file as the target
   for project-specific patterns.
 - Hook docs and code comments describe the session-end sweep on its own
-  terms (OpenClaw has no per-tool-call event) instead of contrasting with
+  terms (the internal-hook system has no per-tool-call event) instead of contrasting with
   other platforms.
 
 ### Upgrade notes (0.3.0 → 4.0.0)

@@ -71,12 +71,12 @@ Remade for OpenClaw from the original repo:
 ## Upgrading
 
 See `self-improving-agent/CHANGELOG.md` for version history and per-version
-upgrade notes. After upgrading, re-copy the OpenClaw hook and restart the
-gateway:
-
-```bash
-cp -r ~/.openclaw/skills/self-improving-agent/hooks/openclaw ~/.openclaw/hooks/self-improvement
-```
+upgrade notes. If using the optional hook, follow
+[Install or Upgrade the Hook](self-improving-agent/references/openclaw-integration.md#install-or-upgrade-the-hook).
+Locate the active copies, review local patches, preserve the old hook outside
+hook discovery, and restart the gateway after replacement. Do not blindly
+re-copy the directory: a repeated `cp -r` can nest it without updating the
+active handler.
 
 ## Uninstalling
 

@@ -9,9 +9,10 @@ metadata: {"openclaw":{"emoji":"🧠","events":["agent:bootstrap","command:new",
 Injects a reminder to evaluate learnings during agent bootstrap, and detects
 errors from ended sessions.
 
-OpenClaw has no per-tool-call hook event, so errors cannot be detected in
-real time after each command. This hook detects them with a session-end
-error sweep instead.
+This integration uses internal `HOOK.md` events, which have no per-tool-call
+callback. OpenClaw's typed plugin hooks expose `after_tool_call`; this hook
+retains session-end detection. See the separate
+[plugin hook catalog](https://docs.openclaw.ai/plugins/hooks/reference).
 
 ## What It Does
 
@@ -27,8 +28,11 @@ error sweep instead.
 **On `command:new` / `command:reset`** (session end):
 
 - Locates the transcript of the session that just ended
-  (`context.previousSessionEntry.sessionFile`, falling back to
-  `<workspace>/sessions/<sessionId>.jsonl`)
+  (`context.previousSessionEntry`, or `sessionEntry` when no previous entry
+  is supplied). Explicit JSONL paths remain supported; SQLite markers use
+  OpenClaw's transcript reader. Markerless contexts prefer an existing
+  `<workspace>/sessions/<sessionId>.jsonl`, otherwise use the exact
+  agent/session identity with the runtime. Only one source is scanned.
 - Scans it against a fixed error-pattern list
   (`Error:`, `command not found`, `Traceback`, `npm ERR!`, …)
 - Appends a `pending` entry to `<workspace>/.learnings/ERRORS.md` with short,
@@ -42,8 +46,27 @@ error sweep instead.
   and counts only confirmed new occurrences, never reviews.
 
 Capture and maintenance work without this hook or any companion skill.
-The sweep currently reads JSONL only; SQLite compatibility (issue #29) is
-separate from the maintenance workflow.
+
+## Transcript Compatibility
+
+SQLite capture, including compressed events, is tested with OpenClaw
+2026.10.4 on Linux/Node 26. The hook lazily resolves
+`openclaw/plugin-sdk/session-transcript-runtime` from the running OpenClaw
+entrypoint, not from the copied hook directory. OpenClaw classifies this
+export as a private host API; future versions and custom launch wrappers
+need validation. No SQLite dependency or database migration is installed.
+
+Both formats scan from the beginning, stopping after 5 excerpts, 2,000
+events, or 8 MiB of transcript data. Runtime reads also stop after 16 page
+requests. Later errors can be missed in long sessions. An oversized event
+is retried only when it fits the remaining byte budget. A transcript reset
+during paging discards that sweep. These bounds limit scanning, not host
+storage-restoration latency.
+
+Missing/unreadable transcripts, unavailable runtime APIs, and scan limits
+emit a short diagnostic only with `SELF_IMPROVEMENT_HOOK_DEBUG=1`.
+Diagnostics do not print raw exceptions or transcripts. Manual capture
+remains available when automatic capture cannot read the transcript.
 
 ## Opt-In and Safety
 

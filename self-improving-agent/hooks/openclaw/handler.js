@@ -1,9 +1,9 @@
 /**
  * Self-Improvement Hook for OpenClaw
  *
- * OpenClaw has no per-tool-call hook event, so errors cannot be detected in
- * real time after each command. This hook detects them at session end
- * instead:
+ * This integration uses internal HOOK.md events, not typed plugin hooks.
+ * Internal events have no per-tool-call callback; this hook detects errors
+ * at session end instead:
  *
  * - agent:bootstrap        Injects the self-improvement reminder before
  *                          workspace files are injected, including a note
@@ -19,6 +19,8 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { createRequire } = require('node:module');
+const { pathToFileURL } = require('node:url');
 
 const REMINDER_NAME = 'SELF_IMPROVEMENT_REMINDER.md';
 const REMINDER_PATH = REMINDER_NAME;
@@ -84,7 +86,102 @@ const ERROR_PATTERN_KEYS = [
 const SWEEP_SOURCE = 'openclaw-error-sweep';
 const MAX_EXCERPTS = 5;
 const MAX_EXCERPT_LENGTH = 200;
+const MAX_TRANSCRIPT_BYTES = 8 * 1024 * 1024;
+const MAX_TRANSCRIPT_EVENTS = 2000;
 const ERRORS_FILE_HEADER = '# Errors\n\nCommand failures and integration errors.\n\n---\n';
+
+// Private host API, tested with OpenClaw 2026.10.4. The host owns storage
+// schemas, compression, and session isolation. Keep in sync with handler.ts.
+let runtimeReader;
+
+function debug(message) {
+  if (process.env.SELF_IMPROVEMENT_HOOK_DEBUG) {
+    console.error(`[self-improvement] ${message}`);
+  }
+}
+
+function loadTranscriptReader() {
+  return runtimeReader ??= (async () => {
+    // A copied hook cannot resolve a global OpenClaw install via bare import.
+    // Resolve from the running host, never another installation beside the hook.
+    const entry = await fs.realpath(process.argv[1]);
+    const hostRequire = createRequire(pathToFileURL(entry));
+    const modulePath = hostRequire.resolve('openclaw/plugin-sdk/session-transcript-runtime');
+    const runtime = await import(pathToFileURL(modulePath).href);
+    if (typeof runtime.readSessionTranscriptRawDelta !== 'function') {
+      throw new Error('Transcript reader unavailable');
+    }
+    return runtime.readSessionTranscriptRawDelta;
+  })();
+}
+
+async function* readTranscriptEntries(source) {
+  if (source.file !== undefined) {
+    const file = await fs.open(source.file, 'r');
+    try {
+      const buffer = Buffer.alloc(MAX_TRANSCRIPT_BYTES + 1);
+      let length = 0;
+      while (length < buffer.length) {
+        const { bytesRead } = await file.read(buffer, length, buffer.length - length, null);
+        if (!bytesRead) break;
+        length += bytesRead;
+      }
+      const capped = length > MAX_TRANSCRIPT_BYTES;
+      let raw = buffer.subarray(0, Math.min(length, MAX_TRANSCRIPT_BYTES)).toString('utf8');
+      if (capped) {
+        raw = raw.slice(0, raw.lastIndexOf('\n') + 1);
+        debug('JSONL byte limit reached; later events were not scanned');
+      }
+      let count = 0;
+      for (const line of raw.split('\n')) {
+        if (!line.trim()) continue;
+        if (count++ >= MAX_TRANSCRIPT_EVENTS) {
+          debug('Transcript event limit reached; later events were not scanned');
+          return;
+        }
+        let event;
+        try { event = JSON.parse(line); } catch { continue; }
+        yield event;
+      }
+    } finally {
+      await file.close();
+    }
+    return;
+  }
+
+  const read = await loadTranscriptReader();
+  let cursor;
+  let bytesLeft = MAX_TRANSCRIPT_BYTES;
+  let eventsLeft = MAX_TRANSCRIPT_EVENTS;
+  let pageBytes = 1024 * 1024;
+  for (let pageNumber = 0; pageNumber < 16 && bytesLeft > 0 && eventsLeft > 0; pageNumber++) {
+    const maxBytes = Math.min(pageBytes, bytesLeft);
+    const page = await read({ ...source.identity, cursor, maxEvents: Math.min(256, eventsLeft), maxBytes });
+    if (page.kind !== 'page') {
+      // Discard any excerpts collected before a generation change.
+      throw new Error('Transcript missing or reset');
+    }
+    if (page.events.length === 0 && page.hasMore) {
+      if (page.requiredBytes && page.requiredBytes > maxBytes && page.requiredBytes <= bytesLeft) {
+        pageBytes = page.requiredBytes;
+        continue;
+      }
+      debug('Transcript page cannot advance within the byte budget');
+      return;
+    }
+    bytesLeft -= page.serializedBytes;
+    eventsLeft -= page.events.length;
+    for (const { event } of page.events) yield event;
+    if (!page.hasMore) return;
+    if (page.cursor === cursor) {
+      debug('Transcript cursor did not advance');
+      return;
+    }
+    cursor = page.cursor;
+    pageBytes = 1024 * 1024;
+  }
+  debug('Transcript scan limit reached; later events were not scanned');
+}
 
 // Best-effort redaction of common secret shapes before anything is written.
 const REDACTION_RULES = [
@@ -161,32 +258,11 @@ function matchErrorPatternKey(line) {
   return null;
 }
 
-async function scanTranscriptForErrors(sessionFilePath) {
-  let raw;
-  try {
-    raw = await fs.readFile(sessionFilePath, 'utf-8');
-  } catch {
-    return [];
-  }
-
+async function scanTranscriptForErrors(source) {
   const excerpts = [];
   const seen = new Set();
 
-  for (const jsonLine of raw.split('\n')) {
-    if (excerpts.length >= MAX_EXCERPTS) {
-      break;
-    }
-    const trimmed = jsonLine.trim();
-    if (!trimmed) {
-      continue;
-    }
-
-    let entry;
-    try {
-      entry = JSON.parse(trimmed);
-    } catch {
-      continue;
-    }
+  for await (const entry of readTranscriptEntries(source)) {
     if (!isObject(entry) || !isObject(entry.message)) {
       continue;
     }
@@ -216,24 +292,41 @@ async function scanTranscriptForErrors(sessionFilePath) {
   return excerpts;
 }
 
-function resolveSessionFilePath(context, workspaceDir) {
+async function resolveTranscriptSource(context, workspaceDir, sessionKey) {
   const sessionEntry = isObject(context.previousSessionEntry)
     ? context.previousSessionEntry
     : isObject(context.sessionEntry)
       ? context.sessionEntry
       : {};
 
-  if (typeof sessionEntry.sessionFile === 'string' && sessionEntry.sessionFile.trim()) {
-    return sessionEntry.sessionFile;
+  const sessionFile = sessionEntry.sessionFile;
+  const sessionId = typeof sessionEntry.sessionId === 'string' ? sessionEntry.sessionId.trim() : '';
+  if (typeof sessionFile === 'string' && sessionFile.trim()) {
+    if (!sessionFile.startsWith('sqlite:')) return { file: sessionFile, label: sessionFile };
+    const marker = /^sqlite:([^:]+):([^:]+):(.+)$/.exec(sessionFile);
+    if (!marker || !path.isAbsolute(marker[3]) || (sessionId && sessionId !== marker[2]) || !sessionKey) {
+      return undefined;
+    }
+    return { label: sessionFile, identity: {
+      agentId: marker[1], sessionId: marker[2], storePath: marker[3], sessionKey,
+    } };
   }
 
-  const sessionId =
-    typeof sessionEntry.sessionId === 'string' ? sessionEntry.sessionId.trim() : '';
-  if (sessionId && workspaceDir) {
-    return path.join(workspaceDir, 'sessions', `${sessionId}.jsonl`);
+  if (!sessionId) return undefined;
+  const file = path.join(workspaceDir, 'sessions', `${sessionId}.jsonl`);
+  try {
+    await fs.access(file);
+    return { file, label: file };
+  } catch (error) {
+    if (!isObject(error) || error.code !== 'ENOENT') throw error;
   }
-
-  return undefined;
+  if (typeof context.agentId === 'string' && context.agentId.trim() && sessionKey) {
+    return { label: `session:${sessionId}`, identity: {
+      agentId: context.agentId, sessionId, sessionKey,
+      ...(typeof context.storePath === 'string' && context.storePath.trim() ? { storePath: context.storePath } : {}),
+    } };
+  }
+  return { file, label: file };
 }
 
 function generateEntryId(timestamp) {
@@ -264,7 +357,7 @@ function formatErrorEntry(params) {
     '```',
     '',
     '### Context',
-    `- Detected by the self-improvement hook on \`/${action}\` (OpenClaw has no per-tool-call hook, so errors are swept from the session transcript at session end)`,
+    `- Detected by the self-improvement internal hook on \`/${action}\`; this integration sweeps transcripts at session end (typed plugins can observe individual tool calls)`,
     `- Session key: ${sessionKey || 'unknown'}`,
     `- Session transcript: ${sessionFilePath}`,
     '- Excerpts are truncated and redacted; check the transcript for full context',
@@ -313,12 +406,20 @@ async function handleSessionEndSweep(event) {
     return;
   }
 
-  const sessionFilePath = resolveSessionFilePath(context, workspaceDir);
-  if (!sessionFilePath) {
+  const sessionKey = typeof event.sessionKey === 'string' ? event.sessionKey : '';
+  const source = await resolveTranscriptSource(context, workspaceDir, sessionKey);
+  if (!source) {
+    debug('Cannot resolve ended-session transcript identity');
     return;
   }
 
-  const excerpts = await scanTranscriptForErrors(sessionFilePath);
+  let excerpts;
+  try {
+    excerpts = await scanTranscriptForErrors(source);
+  } catch {
+    debug('Transcript read unavailable or reset; check the hook installation, session identity, and OpenClaw version');
+    return;
+  }
   if (excerpts.length === 0) {
     return;
   }
@@ -338,8 +439,8 @@ async function handleSessionEndSweep(event) {
 
   const entry = formatErrorEntry({
     excerpts: freshExcerpts,
-    sessionKey: typeof event.sessionKey === 'string' ? event.sessionKey : '',
-    sessionFilePath,
+    sessionKey,
+    sessionFilePath: source.label,
     action: event.action,
     timestamp: event.timestamp instanceof Date ? event.timestamp : new Date(),
   });
@@ -453,11 +554,9 @@ const handler = async (event) => {
     if (event.type === 'command' && (event.action === 'new' || event.action === 'reset')) {
       await handleSessionEndSweep(event);
     }
-  } catch (err) {
+  } catch {
     // Never break the gateway on hook failure.
-    if (process.env.SELF_IMPROVEMENT_HOOK_DEBUG) {
-      console.error('[self-improvement] hook failed:', err);
-    }
+    debug('Hook failed; check workspace permissions and hook compatibility');
   }
 };
 
