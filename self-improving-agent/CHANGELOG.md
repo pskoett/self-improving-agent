@@ -16,7 +16,7 @@ Read this before upgrading. General upgrade rules:
   upgrades; first-use initialisation is idempotent and only creates missing
   files.
 
-## [Unreleased]
+## [4.0.4] - Unreleased
 
 ### Fixed
 
@@ -31,8 +31,8 @@ Read this before upgrading. General upgrade rules:
 - Hook documentation and generated entries (#31) distinguish internal
   `HOOK.md` events from typed plugins, which expose `after_tool_call`.
 - Repository release metadata (#33) now records the published 4.0.3 release;
-  SKILL.md links the maintenance evaluation scenarios. These new fixes remain
-  unreleased and do not change the existing ClawHub 4.0.3 archive.
+  SKILL.md links the maintenance evaluation scenarios. These fixes are prepared
+  for 4.0.4 and do not change the existing ClawHub 4.0.3 archive.
 
 ## [4.0.3] - 2026-10-04
 
